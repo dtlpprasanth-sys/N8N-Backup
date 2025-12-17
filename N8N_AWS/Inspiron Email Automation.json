@@ -1,0 +1,1106 @@
+{
+  "name": "Inspiron Email Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "url": "http://13.234.62.39:8080/api/resource/File",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "filters",
+              "value": "=[[\"attached_to_name\", \"like\", \"%{{ $json.id }}%\"]]"
+            },
+            {
+              "name": "fields",
+              "value": "[\"file_name\", \"file_url\"]"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -400,
+        576
+      ],
+      "id": "0101db5b-9852-42cb-b25e-6002221c4b56",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "KZDBOwB51l3Gs6Xh",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "fromJson",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        -176,
+        576
+      ],
+      "id": "1408c188-81e9-48d1-90b7-dd468177d36f",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "data.data",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        48,
+        576
+      ],
+      "id": "0a7f5a67-4160-4e5a-b50f-7e67e9341bbf",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        720,
+        576
+      ],
+      "id": "fa6f774a-75a5-433f-ac5d-d32100b0dc15",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "name": "Replace Me",
+      "typeVersion": 1,
+      "position": [
+        2416,
+        624
+      ],
+      "id": "e13085c5-230d-4da9-a4c6-ddb39560dfe6"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        944,
+        320
+      ],
+      "id": "7fb52c75-14cd-4495-90a4-1dbd3c85e945",
+      "name": "No Operation, do nothing"
+    },
+    {
+      "parameters": {
+        "model": "llama-3.1-8b-instant",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -1200,
+        592
+      ],
+      "id": "4f00ea29-df8c-4079-96fa-ae97c1c87317",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "vXEkjDoQdItMsfhz",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1a774cf-7280-4826-9322-eb0ae5aa5604",
+              "name": "name",
+              "value": "={{ $json.name }}",
+              "type": "string"
+            },
+            {
+              "id": "ba8e554c-96c9-4277-b523-6816fe035749",
+              "name": "subject",
+              "value": "={{ $json.subject }}",
+              "type": "string"
+            },
+            {
+              "id": "c0c1528c-6289-41c1-81ca-1371d624e23d",
+              "name": "cc",
+              "value": "={{ $json.cc }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -2096,
+        864
+      ],
+      "id": "873ae04e-c26e-40a0-abd7-bd639c09e8e1",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "docType": "Communication",
+        "returnAll": true,
+        "options": {
+          "fields": [
+            "*"
+          ],
+          "filters": {
+            "customProperty": [
+              {
+                "field": "communication_date",
+                "operator": "greater",
+                "value": "={{ $now.minus({days: 7}).toFormat('yyyy-MM-dd') }}"
+              },
+              {
+                "field": "process_status",
+                "value": "Pending"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.erpNext",
+      "typeVersion": 1,
+      "position": [
+        -2320,
+        864
+      ],
+      "id": "bc7ba5d0-550a-4e19-b43b-255ddcce4812",
+      "name": "Get many documents",
+      "credentials": {
+        "erpNextApi": {
+          "id": "Ap4xMpiohheRFSqL",
+          "name": "ERPNext account(Prasanth)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -1424,
+        864
+      ],
+      "id": "d7ec9962-0647-4c8d-b09d-1011df30d40f",
+      "name": "Loop Over Items1"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "name": "Replace Me1",
+      "typeVersion": 1,
+      "position": [
+        1232,
+        320
+      ],
+      "id": "4751ed41-9c65-4a30-8c45-5197b7a5eb39"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "2e8aeb46-5eff-4819-92f5-16249dc67bd5",
+              "leftValue": "={{ $json.inspiron_po }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -624,
+        480
+      ],
+      "id": "1e3c6711-dc25-4acd-b94a-48a37c7daa91",
+      "name": "check inspiron po or not"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        -1136,
+        864
+      ],
+      "id": "ddae8ca1-884c-4eb3-8b7b-8f09fa3f208d",
+      "name": "No Operation, do nothing1"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        496,
+        576
+      ],
+      "id": "5b1961c6-ba20-4cc1-a053-640783e7aa01",
+      "name": "Extract from PO"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a headless data processing API. \nYou are forbidden from using Markdown formatting (like ```json).\nYou must output ONLY a raw JSON object.\n\nINPUT DATA:\n\"{{ $json.text }}\"\n\nLOGIC:\n1. VALIDATION:\n   - IF text contains \"PO No. :\" OR \"Party Ref / No :\" -> INVALID. Return { \"is_valid_inspiron_po\": false }\n   - IF text contains \"ORDER INFORMATION\" AND \"ORDER #\" -> VALID. Proceed to extract.\n\n2. EXTRACTION RULES (STRICT):\n   - supplier: \"Inspiron Engineering Private Limited\"\n   - order_no: Digits after \"ORDER #\"\n   - order_date: \"Order Date:\" value converted to YYYY-MM-DD\n   - order_status: Value after \"Order Status:\"\n   - order_total: Value after \"Order Total:\" (Numbers only, remove currency symbols)\n   - sub_total: Value after \"Sub-Total:\" (Numbers only)\n\n   - customer_name: \n     Extract the FIRST line of text immediately following \"SHIPPING ADDRESS\". (Do not include the Email or Phone lines).\n\n   - payment_terms:\n     Extract the text found after \"*Payment Terms:\". Clean up any newlines or excessive spaces.\n\n   - billing_address: \n     Extract ALL text starting from the line \"BILLING ADDRESS\" up until the line \"SHIPPING ADDRESS\". \n     Keep the newlines (\\n). Do NOT use commas to separate lines.\n\n   - shipping_address: \n     Extract ALL text starting from the line \"SHIPPING ADDRESS\" down to the line starting with \"ORDER #\". \n     Include the \"SHIPPING\" section (Standard Shipping/Status) if present.\n     Keep the newlines (\\n). Do NOT use commas to separate lines.\n\n   - footer_details:\n     - destination: Value after \"Destination:\"\n     - transporter_details: Value after \"Transporter Details:\"\n     - expected_date: Value after \"Expected Date:\" (YYYY-MM-DD)\n     - ref_order_no: Value after \"Ref Order No:\"\n     - ref_order_date: Value after \"Ref Order No:\" date part (YYYY-MM-DD)\n\n   - items: \n     Iterate through rows. Description is the text inside parentheses.\n\nFINAL OUTPUT JSON:\n{\n  \"is_valid_inspiron_po\": true,\n  \"doctype\": \"Inspiron Purchase Order\",\n  \"supplier\": \"Inspiron Engineering Private Limited\",\n  \"customer_name\": \"String\",\n  \"payment_terms\": \"String\",\n  \"order_no\": \"String\",\n  \"order_date\": \"YYYY-MM-DD\",\n  \"order_status\": \"String\",\n  \"order_total\": \"String\",\n  \"sub_total\": \"String\",\n  \"billing_address\": \"String\",\n  \"shipping_address\": \"String\",\n  \"destination\": \"String\",\n  \"transporter_details\": \"String\",\n  \"expected_date\": \"YYYY-MM-DD\",\n  \"ref_order_no\": \"String\",\n  \"ref_order_date\": \"YYYY-MM-DD\",\n  \"item_table\": [\n    {\n      \"item_code\": \"String\",\n      \"description\": \"String\",\n      \"quantity_uom\": \"String\",\n      \"unit_price\": \"String\",\n      \"net_price\": \"String\",\n      \"tax\": \"String\",\n      \"total\": \"String\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        1168,
+        624
+      ],
+      "id": "c8e53471-9644-4a25-8713-efe55c35d33b",
+      "name": "AI Agent2"
+    },
+    {
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        1248,
+        848
+      ],
+      "id": "1f7cb39b-2d93-48de-bcf9-f9481486a41c",
+      "name": "Groq Chat Model2",
+      "credentials": {
+        "groqApi": {
+          "id": "vXEkjDoQdItMsfhz",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "language": "python",
+        "pythonCode": "import json\n\nnew_items = []\nfor item in items:\n    try:\n        output_string = item['json'].get('output', '{}')\n\n        # Clean and parse the string\n        if \"```json\" in output_string:\n            output_string = output_string.strip().split(\"```json\", 1)[-1].strip()\n            if \"```\" in output_string:\n                output_string = output_string.rsplit(\"```\", 1)[0].strip()\n        \n        if output_string.strip().startswith('{') and not output_string.strip().endswith('}'):\n            output_string += '}'\n            \n        parsed_data = json.loads(output_string)\n        new_items.append({'json': parsed_data})\n\n    except Exception as e:\n        error_data = {\n            \"error\": \"Parser 1 failed\",\n            \"details\": str(e),\n            \"original_output_for_debugging\": item['json'].get('output', 'Not Found')\n        }\n        new_items.append({'json': error_data})\n\nreturn new_items"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1520,
+        624
+      ],
+      "id": "2112f10c-8cb6-4fe4-9a9f-bfd5676e87ce",
+      "name": "Parser 1 (Python)2"
+    },
+    {
+      "parameters": {
+        "docType": "Inspiron%20Purchase%20Order",
+        "properties": {
+          "customProperty": [
+            {
+              "field": "supplier",
+              "value": "=Inspiron Engineering Private Limited"
+            },
+            {
+              "field": "order_no",
+              "value": "={{ $json.order_no }}"
+            },
+            {
+              "field": "order_date",
+              "value": "={{ $json.order_date }}"
+            },
+            {
+              "field": "order_status",
+              "value": "={{ $json.order_status }}"
+            },
+            {
+              "field": "order_total",
+              "value": "={{ $json.order_total }}"
+            },
+            {
+              "field": "sub_total",
+              "value": "={{ $json.sub_total }}"
+            },
+            {
+              "field": "billing_address",
+              "value": "={{ $json.billing_address }}"
+            },
+            {
+              "field": "shipping_address",
+              "value": "={{ $json.shipping_address }}"
+            },
+            {
+              "field": "destination",
+              "value": "={{ $json.destination }}"
+            },
+            {
+              "field": "transporter_details",
+              "value": "={{ $json.transporter_details }}"
+            },
+            {
+              "field": "expected_date",
+              "value": "={{ $json.expected_date }}"
+            },
+            {
+              "field": "ref_order_no",
+              "value": "={{ $json.ref_order_no }}"
+            },
+            {
+              "field": "ref_order_date",
+              "value": "={{ $json.ref_order_date }}"
+            },
+            {
+              "field": "item_table",
+              "value": "={{ $json.item_table }}"
+            },
+            {
+              "field": "customer_name",
+              "value": "={{ $json.customer_name }}"
+            },
+            {
+              "field": "payment_terms",
+              "value": "={{ $json.payment_terms }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.erpNext",
+      "typeVersion": 1,
+      "position": [
+        1968,
+        544
+      ],
+      "id": "edb75c30-c347-4bbe-bbd9-5d4c7c2e78e3",
+      "name": "Create a document",
+      "credentials": {
+        "erpNextApi": {
+          "id": "Ap4xMpiohheRFSqL",
+          "name": "ERPNext account(Prasanth)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "3f94b6df-dda2-4015-9b38-7b6c4459740f",
+              "leftValue": "={{ $json.cc }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "3c6d5c3c-99f6-44d5-96f1-c62b50ce782e",
+              "leftValue": "={{ $json.cc }}",
+              "rightValue": "@inspiron.co.in",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1872,
+        864
+      ],
+      "id": "996f15b5-cb18-4438-8427-c3bf93d404b4",
+      "name": "Detect only inspiron mails"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "15cef548-0a78-451c-a0bd-5f59ed2f442c",
+              "leftValue": "={{ $json.subject }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1648,
+        864
+      ],
+      "id": "cd210394-0aca-402f-8426-cbe5b1e5286e",
+      "name": "Subject Empty or Not"
+    },
+    {
+      "parameters": {
+        "language": "python",
+        "pythonCode": "import json\n\nnew_items = []\nfor item in items:\n    try:\n        output_string = item['json'].get('output', '{}')\n\n        # Clean and parse the string\n        if \"```json\" in output_string:\n            output_string = output_string.strip().split(\"```json\", 1)[-1].strip()\n            if \"```\" in output_string:\n                output_string = output_string.rsplit(\"```\", 1)[0].strip()\n        \n        if output_string.strip().startswith('{') and not output_string.strip().endswith('}'):\n            output_string += '}'\n            \n        parsed_data = json.loads(output_string)\n        new_items.append({'json': parsed_data})\n\n    except Exception as e:\n        error_data = {\n            \"error\": \"Parser 1 failed\",\n            \"details\": str(e),\n            \"original_output_for_debugging\": item['json'].get('output', 'Not Found')\n        }\n        new_items.append({'json': error_data})\n\nreturn new_items"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -848,
+        480
+      ],
+      "id": "2ba7ac74-fcd7-41de-a07a-06d9ac07854b",
+      "name": "Parser Ai Data (Python)"
+    },
+    {
+      "parameters": {
+        "url": "=http://13.234.62.39:8080{{ $json.file_url }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        272,
+        576
+      ],
+      "id": "6d5651d7-93ab-466e-8e7d-2e2e745c3675",
+      "name": "HTTP Request (To Download Binary Files )",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "KZDBOwB51l3Gs6Xh",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "42fb8128-95fe-48a1-be06-1880a5dc4169",
+              "name": "text",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            },
+            {
+              "id": "b6811228-9bb2-4609-9a88-593411c3b1ce",
+              "name": "Communication id",
+              "value": "={{ $('Parser Ai Data (Python)').item.json.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        944,
+        624
+      ],
+      "id": "e36a69ac-c8dc-482c-be0f-f47f1b131e98",
+      "name": "Get Po Details"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a precise data extraction engine designed for ERP order processing.\n\n<TASK>\nAnalyze the provided email subject line to validate if it is an \"Inspiron E-Portal\" order. You must extract specific metadata and return it along with the provided Document ID.\n</TASK>\n\n<MATCH_CRITERIA>\n- Valid Order: The subject line MUST start strictly with the exact phrase: \"REG - INSPIRON E-PORTAL\".\n- Invalid Order: Any subject line that does not start with that specific phrase.\n</MATCH_CRITERIA>\n\n<EXTRACTION_RULES>\n1. Document ID: Copy the \"ID\" value provided in the input data exactly as is.\n2. If the subject is a Valid Order, extract the following:\n   - Order Number: The digits immediately following \"ORDER NO.\"\n   - Order Date: The date found in DD.MM.YYYY format (e.g., 08.11.2025).\n   - Company Name: The entity name located after \"M/s.\" and before the comma or unit designation. Clean up any extra spaces or newlines.\n   - Unit: The specific unit designation (e.g., \"UNIT - 1B\").\n</EXTRACTION_RULES>\n\n<SYSTEM_BEHAVIOR>\n1. Output MUST be raw JSON only. Do not use Markdown formatting (no ```json tags).\n2. Do not include introductory text, explanations, or conclusions.\n3. If \"inspiron_po\" is \"false\", return the JSON with the ID included, but null values for other fields.\n</SYSTEM_BEHAVIOR>\n\n<OUTPUT_FORMAT>\n{\n  \"id\": \"ID string from input\",\n  \"inspiron_po\": \"true\" | \"false\",\n  \"order_number\": \"Extracted value or null\",\n  \"order_date\": \"DD.MM.YYYY or null\",\n  \"company_name\": \"Extracted value or null\",\n  \"unit\": \"Extracted value or null\"\n}\n\nExample — Match Found:\n{\n  \"id\": \"icokpcp65u\",\n  \"inspiron_po\": \"true\",\n  \"order_number\": \"8966\",\n  \"order_date\": \"08.11.2025\",\n  \"company_name\": \"EVEREADY SPINNING MILLS PRIVATE LIMITED\",\n  \"unit\": \"UNIT - 1B\"\n}\n\nExample — No Match:\n{\n  \"id\": \"icokpcp65u\",\n  \"inspiron_po\": \"false\",\n  \"order_number\": null,\n  \"order_date\": null,\n  \"company_name\": null,\n  \"unit\": null\n}\n\n<DATA_TO_ANALYZE>\nID: {{ $json.name }}\nSubject Line: {{ $json.subject }}",
+        "needsFallback": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        -1200,
+        368
+      ],
+      "id": "becf399c-199c-4a27-af78-4afd122c9d14",
+      "name": "Analyze Inspiron PO or Not"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "4b64e2a9-406f-49a4-863d-ddb2759403d0",
+              "leftValue": "={{ $json.is_valid_inspiron_po }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1744,
+        624
+      ],
+      "id": "fbf9b4f9-ae8c-4609-b1ea-a971ce42776e",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "docType": "Communication",
+        "documentName": "={{ $('Parser Ai Data (Python)').item.json.id }}",
+        "properties": {
+          "customProperty": [
+            {
+              "field": "process_status",
+              "value": "Processed"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.erpNext",
+      "typeVersion": 1,
+      "position": [
+        2640,
+        672
+      ],
+      "id": "f4c53b03-e496-4d55-bc2f-8d77f9b2b9f2",
+      "name": "Update a document",
+      "credentials": {
+        "erpNextApi": {
+          "id": "Ap4xMpiohheRFSqL",
+          "name": "ERPNext account(Prasanth)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 3
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        720,
+        272
+      ],
+      "id": "510c4c4d-a04c-464b-b3c5-f6345875de4d",
+      "name": "Wait",
+      "webhookId": "2ad4d6d0-ce85-40f7-9c69-0ad82725af04"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "docType": "Communication",
+        "documentName": "={{ $('Parser Ai Data (Python)').item.json.id }}",
+        "properties": {
+          "customProperty": [
+            {
+              "field": "doc_type",
+              "value": "=Inspiron Purchase Order"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.erpNext",
+      "typeVersion": 1,
+      "position": [
+        2192,
+        544
+      ],
+      "id": "232ac6b3-ea65-4f7a-8365-8898ded005f4",
+      "name": "Update a document1",
+      "credentials": {
+        "erpNextApi": {
+          "id": "Ap4xMpiohheRFSqL",
+          "name": "ERPNext account(Prasanth)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -1072,
+        592
+      ],
+      "id": "e328ed5b-c597-4f77-9e99-6a0d8a71f6c3",
+      "name": "Groq Chat Model1",
+      "credentials": {
+        "groqApi": {
+          "id": "vXEkjDoQdItMsfhz",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -2544,
+        864
+      ],
+      "id": "89780d34-5904-48fc-b7d2-ae51a8fe176f",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "content": "## Built an automated n8n workflow that fetches ERPNext emails, securely downloads private PDF attachments, and uses an AI Agent to validate and extract structured Inspiron Purchase Order data into JSON.\nWorkflow Summary:\nFetch & Filter:\nRetrieves \"Communication\" documents from ERPNext (filtered for the last 5 days).\nFilters emails specifically where the CC field contains @inspiron.co.in.\nSecure File Retrieval:\nIdentifies the \"File\" DocType linked to the email.\nUses Header Authentication (API Token) to securely download Private PDF attachments from the ERPNext server.\nPDF Parsing & AI Extraction:\nExtracts raw text from the downloaded PDF.\nUses an AI Agent (Groq Model) to process the text.\nIntelligent Logic:\nClassification: The AI distinguishes between valid \"E-Portal Orders\" (to be processed) and invalid \"Internal/Vendor\" formats (to be ignored).\nData Mapping: Extracts complex fields like Customer Name, Shipping/Billing Addresses, Payment Terms, and Item Child Tables into a strict JSON schema.\nOutput:\nProduces a clean JSON object ready to be mapped directly into the Inspiron Purchase Order DocType in ERPNext.\n",
+        "height": 1104,
+        "width": 5952
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -2880,
+        -80
+      ],
+      "typeVersion": 1,
+      "id": "0b1c55df-270a-443d-964b-24e18d24fcce",
+      "name": "Sticky Note"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request (To Download Binary Files )",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Po Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Replace Me": {
+      "main": [
+        [
+          {
+            "node": "Update a document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "No Operation, do nothing": {
+      "main": [
+        [
+          {
+            "node": "Replace Me1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Analyze Inspiron PO or Not",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Detect only inspiron mails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many documents": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items1": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Analyze Inspiron PO or Not",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Replace Me1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "check inspiron po or not": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from PO": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent2": {
+      "main": [
+        [
+          {
+            "node": "Parser 1 (Python)2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parser 1 (Python)2": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a document": {
+      "main": [
+        [
+          {
+            "node": "Update a document1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect only inspiron mails": {
+      "main": [
+        [
+          {
+            "node": "Subject Empty or Not",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Subject Empty or Not": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parser Ai Data (Python)": {
+      "main": [
+        [
+          {
+            "node": "check inspiron po or not",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request (To Download Binary Files )": {
+      "main": [
+        [
+          {
+            "node": "Extract from PO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Po Details": {
+      "main": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Inspiron PO or Not": {
+      "main": [
+        [
+          {
+            "node": "Parser Ai Data (Python)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Create a document",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Replace Me",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update a document": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update a document1": {
+      "main": [
+        [
+          {
+            "node": "Replace Me",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Analyze Inspiron PO or Not",
+            "type": "ai_languageModel",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get many documents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "2df10853-90b1-41a8-9faf-150fa5213536",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "95e36802bf58d2051ef2ba3daf7047d922424ebe681ae4034d17d4456bf02c8a"
+  },
+  "id": "PQAGeTwlUrsHK4OH",
+  "tags": []
+}
