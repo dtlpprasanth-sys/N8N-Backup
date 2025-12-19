@@ -32,7 +32,7 @@
       "typeVersion": 4.3,
       "position": [
         -400,
-        568
+        576
       ],
       "id": "0101db5b-9852-42cb-b25e-6002221c4b56",
       "name": "HTTP Request",
@@ -52,7 +52,7 @@
       "typeVersion": 1.1,
       "position": [
         -176,
-        568
+        576
       ],
       "id": "1408c188-81e9-48d1-90b7-dd468177d36f",
       "name": "Extract from File"
@@ -66,7 +66,7 @@
       "typeVersion": 1,
       "position": [
         48,
-        568
+        576
       ],
       "id": "0a7f5a67-4160-4e5a-b50f-7e67e9341bbf",
       "name": "Split Out"
@@ -79,7 +79,7 @@
       "typeVersion": 3,
       "position": [
         720,
-        568
+        576
       ],
       "id": "fa6f774a-75a5-433f-ac5d-d32100b0dc15",
       "name": "Loop Over Items"
@@ -90,8 +90,8 @@
       "name": "Replace Me",
       "typeVersion": 1,
       "position": [
-        2416,
-        616
+        2640,
+        624
       ],
       "id": "e13085c5-230d-4da9-a4c6-ddb39560dfe6"
     },
@@ -114,8 +114,8 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
       "typeVersion": 1,
       "position": [
-        -1192,
-        588
+        -1200,
+        592
       ],
       "id": "4f00ea29-df8c-4079-96fa-ae97c1c87317",
       "name": "Groq Chat Model",
@@ -252,7 +252,7 @@
       "typeVersion": 2.3,
       "position": [
         -624,
-        468
+        480
       ],
       "id": "1e3c6711-dc25-4acd-b94a-48a37c7daa91",
       "name": "check inspiron po or not"
@@ -277,7 +277,7 @@
       "typeVersion": 1.1,
       "position": [
         496,
-        568
+        576
       ],
       "id": "5b1961c6-ba20-4cc1-a053-640783e7aa01",
       "name": "Extract from PO"
@@ -292,7 +292,7 @@
       "typeVersion": 3,
       "position": [
         1168,
-        616
+        624
       ],
       "id": "c8e53471-9644-4a25-8713-efe55c35d33b",
       "name": "AI Agent2"
@@ -305,8 +305,8 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
       "typeVersion": 1,
       "position": [
-        1240,
-        840
+        1248,
+        848
       ],
       "id": "1f7cb39b-2d93-48de-bcf9-f9481486a41c",
       "name": "Groq Chat Model2",
@@ -326,7 +326,7 @@
       "typeVersion": 2,
       "position": [
         1520,
-        616
+        624
       ],
       "id": "2112f10c-8cb6-4fe4-9a9f-bfd5676e87ce",
       "name": "Parser 1 (Python)2"
@@ -504,7 +504,7 @@
       "typeVersion": 2,
       "position": [
         -848,
-        468
+        480
       ],
       "id": "2ba7ac74-fcd7-41de-a07a-06d9ac07854b",
       "name": "Parser Ai Data (Python)"
@@ -526,7 +526,7 @@
       "typeVersion": 4.3,
       "position": [
         272,
-        568
+        576
       ],
       "id": "6d5651d7-93ab-466e-8e7d-2e2e745c3675",
       "name": "HTTP Request (To Download Binary Files )",
@@ -561,7 +561,7 @@
       "typeVersion": 3.4,
       "position": [
         944,
-        616
+        624
       ],
       "id": "e36a69ac-c8dc-482c-be0f-f47f1b131e98",
       "name": "Get Po Details"
@@ -577,7 +577,7 @@
       "typeVersion": 3,
       "position": [
         -1200,
-        364
+        368
       ],
       "id": "becf399c-199c-4a27-af78-4afd122c9d14",
       "name": "Analyze Inspiron PO or Not"
@@ -610,7 +610,7 @@
       "typeVersion": 2.3,
       "position": [
         1744,
-        616
+        624
       ],
       "id": "fbf9b4f9-ae8c-4609-b1ea-a971ce42776e",
       "name": "If1"
@@ -632,8 +632,8 @@
       "type": "n8n-nodes-base.erpNext",
       "typeVersion": 1,
       "position": [
-        2640,
-        664
+        2864,
+        672
       ],
       "id": "f4c53b03-e496-4d55-bc2f-8d77f9b2b9f2",
       "name": "Update a document",
@@ -668,6 +668,10 @@
             {
               "field": "doc_type",
               "value": "=Inspiron Purchase Order"
+            },
+            {
+              "field": "ai_reason",
+              "value": "This email is processed by n8n Inspiron PO Workflow"
             }
           ]
         }
@@ -695,8 +699,8 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
       "typeVersion": 1,
       "position": [
-        -1064,
-        588
+        -1072,
+        592
       ],
       "id": "e328ed5b-c597-4f77-9e99-6a0d8a71f6c3",
       "name": "Groq Chat Model1",
@@ -734,7 +738,7 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        -2880,
+        -2768,
         -80
       ],
       "typeVersion": 1,
@@ -767,6 +771,49 @@
       ],
       "id": "302a7a15-0f5e-4cdc-9830-e92380e8cb4d",
       "name": "Update a document2",
+      "credentials": {
+        "erpNextApi": {
+          "id": "Ap4xMpiohheRFSqL",
+          "name": "ERPNext account(Prasanth)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "docType": "Docsync",
+        "properties": {
+          "customProperty": [
+            {
+              "field": "customer_name",
+              "value": "={{ $('Create a document').item.json.customer_name }}"
+            },
+            {
+              "field": "created_doc_id",
+              "value": "={{ $('Create a document').item.json.name }}"
+            },
+            {
+              "field": "status",
+              "value": "Document Created"
+            },
+            {
+              "field": "source_communication",
+              "value": "={{ $('Get Po Details').item.json[\"Communication id\"] }}"
+            },
+            {
+              "field": "analyzed_doctype",
+              "value": "Inspiron Purchase Order"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.erpNext",
+      "typeVersion": 1,
+      "position": [
+        2416,
+        544
+      ],
+      "id": "452505a0-c140-4a1b-96df-19cba622f144",
+      "name": "Create a document1",
       "credentials": {
         "erpNextApi": {
           "id": "Ap4xMpiohheRFSqL",
@@ -1116,7 +1163,7 @@
       "main": [
         [
           {
-            "node": "Replace Me",
+            "node": "Create a document1",
             "type": "main",
             "index": 0
           }
@@ -1155,13 +1202,24 @@
           }
         ]
       ]
+    },
+    "Create a document1": {
+      "main": [
+        [
+          {
+            "node": "Replace Me",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": true,
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "ef07cfc0-4730-46a5-bc59-fd2dd6fba460",
+  "versionId": "6d53d9ab-cdfc-4b3c-a420-ada03bbae8e1",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "95e36802bf58d2051ef2ba3daf7047d922424ebe681ae4034d17d4456bf02c8a"

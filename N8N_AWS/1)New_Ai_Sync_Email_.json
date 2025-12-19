@@ -1,5 +1,5 @@
 {
-  "name": "1)New_Ai_Sync_Email_",
+  "name": "Ai_Sync_Email_",
   "nodes": [
     {
       "parameters": {
@@ -278,7 +278,11 @@
             },
             {
               "field": "recipients",
-              "value": "={{ $json.sanitized_sender }}"
+              "value": "={{ $json.To }}"
+            },
+            {
+              "field": "cc",
+              "value": "={{ $json.CC }}"
             }
           ]
         }
@@ -355,8 +359,14 @@
             },
             {
               "id": "d5faf8af-f008-4426-accd-2d847d4854be",
-              "name": "sanitized_sender",
-              "value": "={{\n  (() => {\n    // --- CONFIGURATION ---\n    // 1. Enter the actual real email you want to use as a fallback here:\n    const realEmail = 'sales-cbe@whitenco.net'; \n    // ---------------------\n\n    // 2. Get the original text or use the real email as default\n    let text = $('Get a document1').item.json.recipients || realEmail;\n\n    // 3. Remove the specific \"sales-cbe\" email so it doesn't get picked up.\n    // We replace it with an empty string so the Regex finds the OTHER email (hos@...) instead.\n    text = text.replace(/sales-cbe@whitenco\\.net/gi, '');\n\n    // 4. Extract ONLY the valid email address using Regex\n    const emailMatch = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}/);\n\n    // 5. Return the found email. If no email is found, return your realEmail.\n    return emailMatch ? emailMatch[0] : realEmail;\n  })()\n}}",
+              "name": "To",
+              "value": "={{\n  (() => {\n    // 1. Get the dirty text from the specific node 'Get a document1'\n    // We access the 'cc' field (Change this to \"recipients\" if you are fixing the To field)\n    const text = $('Get a document1').item.json[\"recipients\"] || \"\";\n\n    // 2. Extract ALL valid emails using a Global Regex\n    // This finds every \"name@domain.com\" and ignores the messy names like \"Sobana P...\"\n    const foundEmails = text.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\\.[a-zA-Z0-9._-]+)/gi) || [];\n\n    // 3. (Optional) Filter out your own email\n    const emailToExclude = 'sales-cbe@whitenco.net';\n    const filteredEmails = foundEmails.filter(email => \n        email.toLowerCase() !== emailToExclude.toLowerCase()\n    );\n\n    // 4. Return a clean, comma-separated list for ERPNext\n    return filteredEmails.join(', ');\n  })()\n}}",
+              "type": "string"
+            },
+            {
+              "id": "6f363439-b55b-4931-b978-bf3a7e89fd82",
+              "name": "CC",
+              "value": "={{\n  (() => {\n    // 1. Get the dirty text from the specific node 'Get a document1'\n    // We access the 'cc' field (Change this to \"recipients\" if you are fixing the To field)\n    const text = $('Get a document1').item.json[\"cc\"] || \"\";\n\n    // 2. Extract ALL valid emails using a Global Regex\n    // This finds every \"name@domain.com\" and ignores the messy names like \"Sobana P...\"\n    const foundEmails = text.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\\.[a-zA-Z0-9._-]+)/gi) || [];\n\n    // 3. (Optional) Filter out your own email\n    const emailToExclude = 'sales-cbe@whitenco.net';\n    const filteredEmails = foundEmails.filter(email => \n        email.toLowerCase() !== emailToExclude.toLowerCase()\n    );\n\n    // 4. Return a clean, comma-separated list for ERPNext\n    return filteredEmails.join(', ');\n  })()\n}}",
               "type": "string"
             }
           ]
@@ -461,16 +471,16 @@
     "Schedule Trigger1": [
       {
         "json": {
-          "timestamp": "2025-12-16T09:15:19.005-05:00",
-          "Readable date": "December 16th 2025, 9:15:19 am",
-          "Readable time": "9:15:19 am",
-          "Day of week": "Tuesday",
+          "timestamp": "2025-12-17T07:10:23.005-05:00",
+          "Readable date": "December 17th 2025, 7:10:23 am",
+          "Readable time": "7:10:23 am",
+          "Day of week": "Wednesday",
           "Year": "2025",
           "Month": "December",
-          "Day of month": "16",
-          "Hour": "09",
-          "Minute": "15",
-          "Second": "19",
+          "Day of month": "17",
+          "Hour": "07",
+          "Minute": "10",
+          "Second": "23",
           "Timezone": "America/New_York (UTC-05:00)"
         },
         "pairedItem": {
@@ -697,7 +707,7 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "22a11596-880c-4ff8-90a8-159540111c15",
+  "versionId": "ddd4ad2e-8013-4cfa-b1a2-5eaacc51d861",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "95e36802bf58d2051ef2ba3daf7047d922424ebe681ae4034d17d4456bf02c8a"
