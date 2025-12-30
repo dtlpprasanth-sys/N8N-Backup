@@ -1,0 +1,286 @@
+{
+  "name": "Detect Supreme Po",
+  "nodes": [
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1a774cf-7280-4826-9322-eb0ae5aa5604",
+              "name": "name",
+              "value": "={{ $json.name }}",
+              "type": "string"
+            },
+            {
+              "id": "ba8e554c-96c9-4277-b523-6816fe035749",
+              "name": "subject",
+              "value": "={{ $json.subject }}",
+              "type": "string"
+            },
+            {
+              "id": "c0c1528c-6289-41c1-81ca-1371d624e23d",
+              "name": "cc",
+              "value": "={{ $json.cc }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        256,
+        -112
+      ],
+      "id": "2479627b-fa99-4d3f-8095-8532850f7e25",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "docType": "Communication",
+        "returnAll": true,
+        "options": {
+          "fields": [
+            "*"
+          ],
+          "filters": {
+            "customProperty": [
+              {
+                "field": "communication_date",
+                "operator": "greater",
+                "value": "={{ $now.minus({weeks:1}).toFormat('yyyy-MM-dd') }}"
+              },
+              {
+                "field": "process_status",
+                "value": "Pending"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.erpNext",
+      "typeVersion": 1,
+      "position": [
+        32,
+        -112
+      ],
+      "id": "268db56b-066f-44a4-a5d2-84ad059ced7f",
+      "name": "Get many documents",
+      "credentials": {
+        "erpNextApi": {
+          "id": "Ap4xMpiohheRFSqL",
+          "name": "ERPNext account(Prasanth)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "15cef548-0a78-451c-a0bd-5f59ed2f442c",
+              "leftValue": "={{ $json.subject }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        704,
+        -112
+      ],
+      "id": "ff53044f-3430-4204-85e2-144c0bb1c9e1",
+      "name": "Subject Empty or Not"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 50
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -192,
+        -112
+      ],
+      "id": "e9c5ff97-9286-48bf-b6df-5a35496d9907",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "3c6d5c3c-99f6-44d5-96f1-c62b50ce782e",
+              "leftValue": "={{ $json.subject }}",
+              "rightValue": "Supreme D.O.No.",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        480,
+        -112
+      ],
+      "id": "cb0294b3-a152-401c-a24e-c7cece2dac54",
+      "name": "Detect only Supreme Mails"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "docType": "Communication",
+        "documentName": "={{ $json.name }}",
+        "properties": {
+          "customProperty": [
+            {
+              "field": "doc_type",
+              "value": "Supreme DO"
+            },
+            {
+              "field": "process_status",
+              "value": "Processed"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.erpNext",
+      "typeVersion": 1,
+      "position": [
+        928,
+        -112
+      ],
+      "id": "77d5fef0-6065-410c-8ac9-14bfb5067fda",
+      "name": "Update a document",
+      "credentials": {
+        "erpNextApi": {
+          "id": "Ap4xMpiohheRFSqL",
+          "name": "ERPNext account(Prasanth)"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "Schedule Trigger": [
+      {
+        "json": {
+          "timestamp": "2025-12-17T01:05:17.004-05:00",
+          "Readable date": "December 17th 2025, 1:05:17 am",
+          "Readable time": "1:05:17 am",
+          "Day of week": "Wednesday",
+          "Year": "2025",
+          "Month": "December",
+          "Day of month": "17",
+          "Hour": "01",
+          "Minute": "05",
+          "Second": "17",
+          "Timezone": "America/New_York (UTC-05:00)"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Detect only Supreme Mails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many documents": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get many documents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect only Supreme Mails": {
+      "main": [
+        [
+          {
+            "node": "Subject Empty or Not",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Subject Empty or Not": {
+      "main": [
+        [
+          {
+            "node": "Update a document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "27c536ba-89c6-48f8-808c-37460d120b2d",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "95e36802bf58d2051ef2ba3daf7047d922424ebe681ae4034d17d4456bf02c8a"
+  },
+  "id": "2qzTxQ95S9RhHEFE",
+  "tags": []
+}

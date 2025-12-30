@@ -67,6 +67,10 @@
             {
               "field": "naming_series",
               "value": "={{ $json.series }}"
+            },
+            {
+              "field": "company",
+              "value": "White & Co."
             }
           ]
         }
@@ -202,7 +206,7 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "069b58cc-9207-46e4-a085-5d4dcac68cdc",
+  "versionId": "0d26decc-3ad0-442c-a3c1-2153cd47934d",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "95e36802bf58d2051ef2ba3daf7047d922424ebe681ae4034d17d4456bf02c8a"

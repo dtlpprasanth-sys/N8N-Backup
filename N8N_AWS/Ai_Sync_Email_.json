@@ -1,0 +1,717 @@
+{
+  "name": "Ai_Sync_Email_",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## New Email Sync with Ai Agent Analyze and Detect the dotype and update the status on epr next\n**Double click** to edit me. [Guide](https://docs.n8n.io/workflows/sticky-notes/)",
+        "height": 880,
+        "width": 3648
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -800,
+        224
+      ],
+      "typeVersion": 1,
+      "id": "da36a538-bccc-47a6-ace1-f34a0098a2c2",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        16,
+        816
+      ],
+      "id": "5083d91a-284a-421e-b556-efedf025f4df",
+      "name": "Loop Over Items1"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "name": "Replace Me1",
+      "typeVersion": 1,
+      "position": [
+        2608,
+        928
+      ],
+      "id": "feb8a3fd-4806-4b6b-99c5-813758499a58"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "docType": "Communication",
+        "documentName": "={{ $json.name }}"
+      },
+      "type": "n8n-nodes-base.erpNext",
+      "typeVersion": 1,
+      "position": [
+        240,
+        816
+      ],
+      "id": "25dd5f9e-cda1-40ec-9faa-2ec948cb318c",
+      "name": "Get a document1",
+      "credentials": {
+        "erpNextApi": {
+          "id": "Ap4xMpiohheRFSqL",
+          "name": "ERPNext account(Prasanth)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b4d38af8-3223-48ce-9f02-0a3bb2bd9c59",
+              "name": "Subject",
+              "value": "={{ $json.subject }}",
+              "type": "string"
+            },
+            {
+              "id": "ca8f2572-7f96-47d4-a79d-493190ed4996",
+              "name": "Body",
+              "value": "={{ $json.content }}",
+              "type": "string"
+            },
+            {
+              "id": "4d9f09f2-9ac5-4517-967b-2972f71c2509",
+              "name": "sender",
+              "value": "={{ $json.sender }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        464,
+        816
+      ],
+      "id": "97530de9-8cb5-4902-9ec5-b5286c59ae4e",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a meticulous AI classification engine designed for commercial email analysis.\n<TASK>\nAnalyze the subject and body of an email and classify its primary intent as either \"RFQ\" (a new Request for Quotation) or \"Unclassified\".\n</TASK>\n<DEFINITIONS>\n- RFQ: The sender’s primary intent is to initiate a new sales process by requesting pricing for products or services. This includes direct requests for a \"quote,\" \"pricing,\" \"quotation,\" \"pro-forma,\" or emails listing items and asking for a cost. Common keywords: enquiry, inquiry, quote, pricing, cost for, share the price, request quotation.\nUnclassified: Any communication that does not initiate a new pricing request. This includes:\n• Internal discussions or updates about an existing quotation\n• Approval requests or approval confirmations\n• Order confirmations, support requests, inquiries without price requests\n• Follow-ups referencing previous quotes or previous discussions\n</DEFINITIONS>\n<CRITICAL_EXCLUSIONS>\nExplicitly classify the following as \"Unclassified\" even if the word \"Quotation\" appears:\nApproval requests: \"New Quotation Approval Request\", \"Waiting for approval\"\nApproval confirmations: \"Quotation has been approved\", \"Approved successfully\"\nInternal discussions or queries about existing quotes\nFollow-ups about previous RFQs or quotations\n</CRITICAL_EXCLUSIONS>\n<RULES>\n1. Distinguish New Request vs Status: \n   RFQ = starts a new pricing request.\n   Unclassified = status, approval, discussion, reference to existing quote.\nOutput Must Be JSON Only:\nRespond with a single valid JSON object. No text, no markdown, no extra explanation.\nMust include:\nclassification: \"RFQ\" or \"Unclassified\"\nconfidence: number between 0.0 to 1.0\nreason: one short sentence\n</RULES>\n<OUTPUT_FORMAT>\n{\n\"classification\": \"RFQ\" | \"Unclassified\",\n\"confidence\": 0.0-1.0,\n\"reason\": \"Short explanation.\"\n}\nExample — RFQ:\n{\n\"classification\": \"RFQ\",\n\"confidence\": 0.98,\n\"reason\": \"The email asks for pricing and lists product specifications.\"\n}\nExample — Unclassified:\n{\n\"classification\": \"Unclassified\",\n\"confidence\": 0.96,\n\"reason\": \"This email only discusses approval of an existing quotation.\"\n}\n<DATA_TO_ANALYZE>\nSubject: {{ $json.Subject }}\nBody: {{ $json.Body }}\n",
+        "needsFallback": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        1360,
+        704
+      ],
+      "id": "153ae525-3831-4024-875b-ab06f9aaf5e2",
+      "name": "AI Agent",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "model": "llama-3.1-8b-instant",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        1376,
+        928
+      ],
+      "id": "5ce743bc-d369-4991-9991-b4eb0e8c9722",
+      "name": "Groq Chat Model1",
+      "credentials": {
+        "groqApi": {
+          "id": "vXEkjDoQdItMsfhz",
+          "name": "Groq account(sasi)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "language": "python",
+        "pythonCode": "import json\n\nnew_items = []\nfor item in items:\n    try:\n        output_string = item['json'].get('output', '{}')\n\n        # Clean and parse the string\n        if \"```json\" in output_string:\n            output_string = output_string.strip().split(\"```json\", 1)[-1].strip()\n            if \"```\" in output_string:\n                output_string = output_string.rsplit(\"```\", 1)[0].strip()\n        \n        if output_string.strip().startswith('{') and not output_string.strip().endswith('}'):\n            output_string += '}'\n            \n        parsed_data = json.loads(output_string)\n        new_items.append({'json': parsed_data})\n\n    except Exception as e:\n        error_data = {\n            \"error\": \"Parser 1 failed\",\n            \"details\": str(e),\n            \"original_output_for_debugging\": item['json'].get('output', 'Not Found')\n        }\n        new_items.append({'json': error_data})\n\nreturn new_items"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1712,
+        704
+      ],
+      "id": "0331c377-16af-4bd9-9c0c-97d9ac3beed8",
+      "name": "Parser 1 (Python)"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -656,
+        816
+      ],
+      "id": "285481d4-6128-42a8-8051-ad3a903cb589",
+      "name": "Schedule Trigger1"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        240,
+        624
+      ],
+      "id": "e6003168-dbc6-40f4-9a77-bcd840f46f39",
+      "name": "No Operation, do nothing1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Access the Body field coming from the previous node\nconst content = $input.item.json.Body || '';\n\n// 1. Calculate simple character length\nconst charCount = content.length;\n\n// 2. (Optional) Rough Token Estimate for AI \n// (Rule of thumb: 1 token is approx 4 characters)\nconst tokenEstimate = Math.ceil(charCount / 4);\n\n// Write these values back to the item so the IF node can use them\n$input.item.json.charCount = charCount;\n$input.item.json.tokenEstimate = tokenEstimate;\n\nreturn $input.item;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        912,
+        816
+      ],
+      "id": "1726fc8f-b1ed-4184-a999-bec764546aba",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "9df93a24-b00e-43f3-9c11-928bd20204b7",
+              "leftValue": "={{ $json.charCount }}",
+              "rightValue": 13000,
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1136,
+        816
+      ],
+      "id": "a1d3cfd3-3d20-42a7-ae72-978aec77ab85",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "docType": "Communication",
+        "documentName": "={{ $('Get a document1').item.json.name }}",
+        "properties": {
+          "customProperty": [
+            {
+              "field": "process_status",
+              "value": "Ignore"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.erpNext",
+      "typeVersion": 1,
+      "position": [
+        2384,
+        944
+      ],
+      "id": "154255b9-4527-4e16-8405-2f192e0e1487",
+      "name": "Update a document3",
+      "credentials": {
+        "erpNextApi": {
+          "id": "Ap4xMpiohheRFSqL",
+          "name": "ERPNext account(Prasanth)"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "docType": "Communication",
+        "documentName": "={{ $json.name }}",
+        "properties": {
+          "customProperty": [
+            {
+              "field": "doc_type",
+              "value": "={{ $json.Doctype }}"
+            },
+            {
+              "field": "confidence",
+              "value": "={{ $json.confidence }}"
+            },
+            {
+              "field": "ai_reason",
+              "value": "={{ $json.reason }}"
+            },
+            {
+              "field": "process_status",
+              "value": "={{ $json[\"Ai Process Status\"] }}"
+            },
+            {
+              "field": "recipients",
+              "value": "={{ $json.To }}"
+            },
+            {
+              "field": "cc",
+              "value": "={{ $json.CC }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.erpNext",
+      "typeVersion": 1,
+      "position": [
+        2160,
+        704
+      ],
+      "id": "b8f3ec39-801e-4dcb-8554-4ca5b53fbddc",
+      "name": "Update a Comminication Status1",
+      "alwaysOutputData": false,
+      "credentials": {
+        "erpNextApi": {
+          "id": "Ap4xMpiohheRFSqL",
+          "name": "ERPNext account(Prasanth)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        1504,
+        928
+      ],
+      "id": "118151df-f711-4f32-9da8-bf90885a4f65",
+      "name": "Fallback Model1",
+      "credentials": {
+        "groqApi": {
+          "id": "vXEkjDoQdItMsfhz",
+          "name": "Groq account(sasi)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3a81033d-4f1d-4e27-bd0c-757eee5368e7",
+              "name": "name",
+              "value": "={{ $('Get a document1').item.json.name }}",
+              "type": "string"
+            },
+            {
+              "id": "2e0625d4-86c6-4b1b-9fbe-a0a75ff6c63e",
+              "name": "Doctype",
+              "value": "={{ $json.classification }}",
+              "type": "string"
+            },
+            {
+              "id": "8f9dcb7f-cefb-4bf0-a773-b47c72fb4e95",
+              "name": "confidence",
+              "value": "={{ $json.confidence }}",
+              "type": "number"
+            },
+            {
+              "id": "416ef0c7-5580-4c40-885f-a6a086c817c9",
+              "name": "reason",
+              "value": "={{ $json.reason }}",
+              "type": "string"
+            },
+            {
+              "id": "03a6ab9f-a47e-42d1-a20a-9e0bcc1848bf",
+              "name": "Ai Process Status",
+              "value": "Pending",
+              "type": "string"
+            },
+            {
+              "id": "d5faf8af-f008-4426-accd-2d847d4854be",
+              "name": "To",
+              "value": "={{\n  (() => {\n    // 1. Get the dirty text from the specific node 'Get a document1'\n    // We access the 'cc' field (Change this to \"recipients\" if you are fixing the To field)\n    const text = $('Get a document1').item.json[\"recipients\"] || \"\";\n\n    // 2. Extract ALL valid emails using a Global Regex\n    // This finds every \"name@domain.com\" and ignores the messy names like \"Sobana P...\"\n    const foundEmails = text.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\\.[a-zA-Z0-9._-]+)/gi) || [];\n\n    // 3. (Optional) Filter out your own email\n    const emailToExclude = 'sales-cbe@whitenco.net';\n    const filteredEmails = foundEmails.filter(email => \n        email.toLowerCase() !== emailToExclude.toLowerCase()\n    );\n\n    // 4. Return a clean, comma-separated list for ERPNext\n    return filteredEmails.join(', ');\n  })()\n}}",
+              "type": "string"
+            },
+            {
+              "id": "6f363439-b55b-4931-b978-bf3a7e89fd82",
+              "name": "CC",
+              "value": "={{\n  (() => {\n    // 1. Get the dirty text from the specific node 'Get a document1'\n    // We access the 'cc' field (Change this to \"recipients\" if you are fixing the To field)\n    const text = $('Get a document1').item.json[\"cc\"] || \"\";\n\n    // 2. Extract ALL valid emails using a Global Regex\n    // This finds every \"name@domain.com\" and ignores the messy names like \"Sobana P...\"\n    const foundEmails = text.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\\.[a-zA-Z0-9._-]+)/gi) || [];\n\n    // 3. (Optional) Filter out your own email\n    const emailToExclude = 'sales-cbe@whitenco.net';\n    const filteredEmails = foundEmails.filter(email => \n        email.toLowerCase() !== emailToExclude.toLowerCase()\n    );\n\n    // 4. Return a clean, comma-separated list for ERPNext\n    return filteredEmails.join(', ');\n  })()\n}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1936,
+        704
+      ],
+      "id": "1c7eee1c-aaf9-4a93-807f-4257496063e7",
+      "name": "Edit Fields4"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "docType": "=Communication",
+        "returnAll": true,
+        "options": {
+          "filters": {
+            "customProperty": [
+              {
+                "field": "=process_status",
+                "value": "New"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.erpNext",
+      "typeVersion": 1,
+      "position": [
+        -432,
+        816
+      ],
+      "id": "49c4fdb8-f879-495d-93ca-f361294fdbbc",
+      "name": "Get a document",
+      "executeOnce": false,
+      "credentials": {
+        "erpNextApi": {
+          "id": "Ap4xMpiohheRFSqL",
+          "name": "ERPNext account(Prasanth)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "804518c8-6917-4873-83df-decb12e54e0a",
+              "name": "name",
+              "value": "={{ $json.name }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -208,
+        816
+      ],
+      "id": "6f75050b-2883-444c-87c6-194394d294da",
+      "name": "Erp_communication_data",
+      "executeOnce": false,
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "amount": 2
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2384,
+        704
+      ],
+      "id": "588d2931-41f7-4654-aeca-e232aaf9268c",
+      "name": "Wait",
+      "webhookId": "33d06918-2137-461d-811e-d8df72236580"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the body from the previous node\nconst bodyHtml = $json.Body || \"\";\n\n// simple regex to strip HTML tags and style content\nlet cleanText = bodyHtml.replace(/<style([\\s\\S]*?)<\\/style>/gi, \"\"); // Remove style blocks\ncleanText = cleanText.replace(/<[^>]*>/g, \"\"); // Remove HTML tags\ncleanText = cleanText.replace(/\\s+/g, \" \").trim(); // Remove excess whitespace\n\n// Update the Body field to be the clean text\nreturn {\n  json: {\n    ...$json,\n    Body: cleanText\n  }\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        688,
+        816
+      ],
+      "id": "85c9d015-99ba-4057-99c7-8014c56c0d3f",
+      "name": "Clean HTML (Code)"
+    }
+  ],
+  "pinData": {
+    "Schedule Trigger1": [
+      {
+        "json": {
+          "timestamp": "2025-12-17T07:10:23.005-05:00",
+          "Readable date": "December 17th 2025, 7:10:23 am",
+          "Readable time": "7:10:23 am",
+          "Day of week": "Wednesday",
+          "Year": "2025",
+          "Month": "December",
+          "Day of month": "17",
+          "Hour": "07",
+          "Minute": "10",
+          "Second": "23",
+          "Timezone": "America/New_York (UTC-05:00)"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Loop Over Items1": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get a document1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Replace Me1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a document1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Clean HTML (Code)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Parser 1 (Python)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parser 1 (Python)": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger1": {
+      "main": [
+        [
+          {
+            "node": "Get a document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update a document3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update a document3": {
+      "main": [
+        [
+          {
+            "node": "Replace Me1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update a Comminication Status1": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fallback Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Edit Fields4": {
+      "main": [
+        [
+          {
+            "node": "Update a Comminication Status1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a document": {
+      "main": [
+        [
+          {
+            "node": "Erp_communication_data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Erp_communication_data": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Replace Me1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean HTML (Code)": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "ddd4ad2e-8013-4cfa-b1a2-5eaacc51d861",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "95e36802bf58d2051ef2ba3daf7047d922424ebe681ae4034d17d4456bf02c8a"
+  },
+  "id": "7iygTDzgge6RwKby",
+  "tags": []
+}

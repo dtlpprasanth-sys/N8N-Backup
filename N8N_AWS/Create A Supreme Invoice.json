@@ -1,0 +1,931 @@
+{
+  "name": "Create A Supreme Invoice",
+  "nodes": [
+    {
+      "parameters": {
+        "url": "http://13.234.62.39:8080/api/resource/File",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "filters",
+              "value": "=[[\"attached_to_name\",\"=\",\"{{$json.name}}\"]]"
+            },
+            {
+              "name": "fields",
+              "value": "[\"file_name\", \"file_url\"]"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1280,
+        576
+      ],
+      "id": "713d06ec-b573-4a90-884b-304022647359",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "KZDBOwB51l3Gs6Xh",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "fromJson",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        1504,
+        576
+      ],
+      "id": "d25ae0d2-d55d-4f7f-8cd0-e1d31ceae2d6",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "data.data",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1728,
+        576
+      ],
+      "id": "b076cf49-93ae-4422-bcd6-4f5d927db2e8",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "url": "=http://13.234.62.39:8080{{ $json.file_url }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2624,
+        576
+      ],
+      "id": "57a68c70-5a5b-4e4f-8cd7-c772d7932a9d",
+      "name": "HTTP Request (To Download Binary Files )",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "KZDBOwB51l3Gs6Xh",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        2848,
+        576
+      ],
+      "id": "393d4d76-7e9a-4c7c-a118-fc599bd88c0c",
+      "name": "Extract from Invoice"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an expert invoice data extraction AI.\n\nYour task is to analyze the provided invoice text and return a SINGLE, COMPLETE, and VALID JSON object.\n\nSTRICT RULES (VERY IMPORTANT):\n- Output ONLY raw JSON\n- No markdown\n- No explanations\n- No trailing commas\n- JSON MUST be fully closed\n- Do NOT truncate the response\n- End the response with the final closing }\n\nOUTPUT MUST BE PARSABLE using json.loads().\n\n---\n\nExtract the following fields exactly:\n\n{\n  \"invoice_number\": \"\",\n  \"invoice_date\": \"\",\n  \"po_date\": \"\",\n  \"bill_to\": {\n    \"name\": \"\",\n    \"address\": \"\",\n    \"gst_no\": \"\"\n  },\n  \"consignee\": {\n    \"name\": \"\",\n    \"address\": \"\",\n    \"gst_no\": \"\"\n  },\n  \"line_items\": [\n    {\n      \"sr_no\": \"\",\n      \"description\": \"\",\n      \"hsn_code\": \"\",\n      \"qty\": \"\",\n      \"unit\": \"\",\n      \"rate\": \"\",\n      \"amount\": \"\"\n    }\n  ],\n  \"total_amount\": \"\",\n  \"igst_amount\": \"\",\n  \"net_amount\": \"\"\n}\n\nFIELD RULES:\n- Extract values exactly as written in the invoice\n- Keep numbers as strings\n- Preserve full addresses with commas and line breaks\n- If any field is missing, return an empty string \"\"\n- Always return the full structure, even if some values are empty\n\n---\n\nINVOICE TEXT:\n{{ $json.text }}",
+        "needsFallback": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        3296,
+        576
+      ],
+      "id": "51baaf2a-a2c3-476b-8ac4-0023af063f6d",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "llama-3.1-8b-instant",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        3312,
+        800
+      ],
+      "id": "18747a5f-ac61-4b6a-8d79-c945bcf4c5a1",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "vXEkjDoQdItMsfhz",
+          "name": "Groq account(sasi)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        3440,
+        800
+      ],
+      "id": "a3e20c11-10b3-486d-a2fd-21d401fc2c3c",
+      "name": "Groq Chat Model1",
+      "credentials": {
+        "groqApi": {
+          "id": "vXEkjDoQdItMsfhz",
+          "name": "Groq account(sasi)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "language": "python",
+        "pythonCode": "import json\nimport re\n\nnew_items = []\n\nraw_output = items[0].json.get('output', '').strip()\n\ntry:\n    # 1. Remove markdown fences\n    clean_json = re.sub(r'```json\\s*|\\s*```', '', raw_output).strip()\n\n    # 2. AUTO-FIX: close JSON if AI forgot\n    if clean_json.count('{') > clean_json.count('}'):\n        clean_json += '}'\n\n    if clean_json.count('[') > clean_json.count(']'):\n        clean_json += ']'\n\n    # 3. Parse JSON\n    parsed_data = json.loads(clean_json, strict=False)\n\n    # 4. Standard n8n output\n    if isinstance(parsed_data, list):\n        for entry in parsed_data:\n            new_items.append({\"json\": entry})\n    else:\n        new_items.append({\"json\": parsed_data})\n\nexcept Exception as e:\n    new_items.append({\n        \"json\": {\n            \"error\": \"Failed to parse AI output\",\n            \"details\": str(e),\n            \"raw_output\": raw_output\n        }\n    })\n\nreturn new_items"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3648,
+        576
+      ],
+      "id": "0259683c-97af-45b0-af16-ac2b6d09f5aa",
+      "name": "Parser 1 (Python)"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "60a3c13e-481c-41ce-816c-b1eaa2a0e088",
+              "name": "text",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3072,
+        576
+      ],
+      "id": "6518e4fe-11a7-438f-9cf6-33c6e3934523",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "content": "Supreme Invoice (SK)",
+        "height": 1232,
+        "width": 4912,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        64,
+        32
+      ],
+      "typeVersion": 1,
+      "id": "dfc5a5a8-4672-45c4-9cb8-359bf9babb4f",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "docType": "Supreme%20Invoice",
+        "properties": {
+          "customProperty": [
+            {
+              "field": "invoice_number",
+              "value": "={{ $json.invoice_number }}"
+            },
+            {
+              "field": "invoice_date",
+              "value": "={{ $json.invoice_date }}"
+            },
+            {
+              "field": "po_date",
+              "value": "={{ $json.po_date }}"
+            },
+            {
+              "field": "bill_to",
+              "value": "={{ $json.bill_to }}"
+            },
+            {
+              "field": "consignee",
+              "value": "={{ $json.consignee }}"
+            },
+            {
+              "field": "table_bsan",
+              "value": "={{ $json.table_bsan }}"
+            },
+            {
+              "field": "net_amount",
+              "value": "={{ $json.net_amount }}"
+            },
+            {
+              "field": "igst_amount",
+              "value": "={{ $json.igst_amount }}"
+            },
+            {
+              "field": "total_amount",
+              "value": "={{ $json.total_amount }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.erpNext",
+      "typeVersion": 1,
+      "position": [
+        4096,
+        576
+      ],
+      "id": "6681fd70-14cf-4788-b8d5-8dcabc2b15b2",
+      "name": "Create a document",
+      "credentials": {
+        "erpNextApi": {
+          "id": "Ap4xMpiohheRFSqL",
+          "name": "ERPNext account(Prasanth)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f11a94a8-585c-498b-93fd-889bdd1a0815",
+              "name": "name",
+              "value": "={{ $json.name }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        608,
+        752
+      ],
+      "id": "38142006-ed68-414e-b975-bc12b33ee46c",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        832,
+        752
+      ],
+      "id": "7a67a3f2-527d-4764-8d19-6892bd09fa34",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "name": "Replace Me",
+      "typeVersion": 1,
+      "position": [
+        2400,
+        384
+      ],
+      "id": "a329459f-491f-44aa-a78d-94cc50344d8b"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        2176,
+        576
+      ],
+      "id": "7dd5583e-89c5-454f-b0e2-3fa813fd303e",
+      "name": "Loop Over Items1"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "name": "Replace Me1",
+      "typeVersion": 1,
+      "position": [
+        4768,
+        688
+      ],
+      "id": "e5ca5277-cbfc-4ecb-9f7c-69bdc9131c1a"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "75d3c2d1-7560-4d46-bf67-9bdb85e34b33",
+              "name": "invoice_number",
+              "value": "={{ $json.invoice_number }}",
+              "type": "string"
+            },
+            {
+              "id": "0751e552-60d4-4776-b83e-50051491e089",
+              "name": "invoice_date",
+              "value": "={{ $json.invoice_date }}",
+              "type": "string"
+            },
+            {
+              "id": "f5b8c1a2-3e4d-4f5a-b6c7-d8e9f0a1b2c3",
+              "name": "po_date",
+              "value": "={{ $json.po_date }}",
+              "type": "string"
+            },
+            {
+              "id": "c1d2e3f4-5a6b-4c7d-8e9f-0a1b2c3d4e5f",
+              "name": "bill_to",
+              "value": "={{ `${$json.bill_to.name}\n${$json.bill_to.address.street}\n${$json.bill_to.address.city}, ${$json.bill_to.address.state} - ${$json.bill_to.address.pincode}` }}",
+              "type": "string"
+            },
+            {
+              "id": "a9b8c7d6-e5f4-4a3b-b2c1-d0e9f8a7b6c5",
+              "name": "consignee",
+              "value": "={{ `${$json.consignee.name}\n${$json.consignee.address.street}\n${$json.consignee.address.city}, ${$json.consignee.address.state} - ${$json.consignee.address.pincode}` }}",
+              "type": "string"
+            },
+            {
+              "id": "b3c4d5e6-f7a8-4b9c-8d1e-2f3a4b5c6d7e",
+              "name": "total_amount",
+              "value": "={{ $json.total_amount }}",
+              "type": "string"
+            },
+            {
+              "id": "e6f7a8b9-c1d2-4e3f-b4a5-c6d7e8f9a0b1",
+              "name": "igst_amount",
+              "value": "={{ $json.igst_amount }}",
+              "type": "string"
+            },
+            {
+              "id": "d5e4f3a2-b1c0-4d9e-8f7a-6b5c4d3e2f1a",
+              "name": "net_amount",
+              "value": "={{ $json.net_amount }}",
+              "type": "string"
+            },
+            {
+              "id": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+              "name": "table_bsan",
+              "value": "={{ $json.line_items.map(item => ({ \"description\": item.description, \"hsn_code\": item.hsn_code, \"qty\": item.qty, \"unit\": item.unit, \"rate\": item.rate, \"amount\": item.amount })) }}",
+              "type": "json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3872,
+        576
+      ],
+      "id": "b6b0f961-cd79-4f45-bc77-b0e70d8695a1",
+      "name": "Map to Supreme Invoice2"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 10
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        160,
+        752
+      ],
+      "id": "09f2b94b-d109-4670-b348-4f1ce9bb0cc5",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "docType": "Communication",
+        "options": {
+          "filters": {
+            "customProperty": [
+              {
+                "field": "process_status",
+                "value": "Processed"
+              },
+              {
+                "field": "doc_type",
+                "value": "Supreme Invoice"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.erpNext",
+      "typeVersion": 1,
+      "position": [
+        384,
+        752
+      ],
+      "id": "fa97eef2-05b1-4dda-8448-99105fee999b",
+      "name": "Get many documents",
+      "credentials": {
+        "erpNextApi": {
+          "id": "Ap4xMpiohheRFSqL",
+          "name": "ERPNext account(Prasanth)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "docType": "Communication",
+        "documentName": "={{ $('original Communication Id').item.json[\"Communication Id\"] }}",
+        "properties": {
+          "customProperty": [
+            {
+              "field": "process_status",
+              "value": "Document Created"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.erpNext",
+      "typeVersion": 1,
+      "position": [
+        4320,
+        576
+      ],
+      "id": "b960fc38-540e-425f-af10-89da1d7dfec7",
+      "name": "Update a document",
+      "credentials": {
+        "erpNextApi": {
+          "id": "Ap4xMpiohheRFSqL",
+          "name": "ERPNext account(Prasanth)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "402bc100-544e-41c7-8893-50ca3bd3ca5b",
+              "name": "name",
+              "value": "={{ $json.name }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1056,
+        576
+      ],
+      "id": "a90f7e27-f835-4dd1-98b1-32b1f2c20d46",
+      "name": "Get Communication ID"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "12a533b9-f878-46c4-b92e-bae12f76e282",
+              "name": "Communication Id",
+              "value": "={{ $('Get Communication ID').item.json.name }}",
+              "type": "string"
+            },
+            {
+              "id": "46c08508-d8a3-45f5-844d-b24c52760614",
+              "name": "file_name",
+              "value": "={{ $json.file_name }}",
+              "type": "string"
+            },
+            {
+              "id": "0b7f81a6-cbc2-40c5-8974-a9068e66f412",
+              "name": "file_url",
+              "value": "={{ $json.file_url }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1952,
+        576
+      ],
+      "id": "65aca695-4911-4f11-8edb-d780b34ea33a",
+      "name": "Communication  with File url"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "65346e2e-aba9-408c-8c24-413cc80e88fe",
+              "name": "Communication Id",
+              "value": "={{ $json['Communication Id'] }}",
+              "type": "string"
+            },
+            {
+              "id": "b7785b11-dcee-40bf-964c-d21d3927e3b3",
+              "name": "file_name",
+              "value": "={{ $json.file_name }}",
+              "type": "string"
+            },
+            {
+              "id": "f632c043-0508-4d8d-8a71-4cba6e5d8ba8",
+              "name": "file_url",
+              "value": "={{ $json.file_url }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2400,
+        576
+      ],
+      "id": "d2b28720-1f01-4a0c-a090-65c8b70e2814",
+      "name": "original Communication Id"
+    },
+    {
+      "parameters": {
+        "docType": "Docsync",
+        "properties": {
+          "customProperty": [
+            {
+              "field": "table_bwrj",
+              "value": "={{ $('Create a document').item.json.table_bsan }}"
+            },
+            {
+              "field": "analyzed_doctype",
+              "value": "Supreme Invoice"
+            },
+            {
+              "field": "customer_name",
+              "value": "Supreme"
+            },
+            {
+              "field": "source_communication",
+              "value": "={{ $('original Communication Id').item.json[\"Communication Id\"] }}"
+            },
+            {
+              "field": "source_name"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.erpNext",
+      "typeVersion": 1,
+      "position": [
+        4544,
+        576
+      ],
+      "id": "a9962e22-2bcc-4a27-b9c4-5922a91744c9",
+      "name": "Update Docsync",
+      "credentials": {
+        "erpNextApi": {
+          "id": "Ap4xMpiohheRFSqL",
+          "name": "ERPNext account(Prasanth)"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Communication  with File url",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request (To Download Binary Files )": {
+      "main": [
+        [
+          {
+            "node": "Extract from Invoice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from Invoice": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Parser 1 (Python)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Parser 1 (Python)": {
+      "main": [
+        [
+          {
+            "node": "Map to Supreme Invoice2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a document": {
+      "main": [
+        [
+          {
+            "node": "Update a document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Get Communication ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Replace Me": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items1": {
+      "main": [
+        [
+          {
+            "node": "Replace Me",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "original Communication Id",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Replace Me1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Map to Supreme Invoice2": {
+      "main": [
+        [
+          {
+            "node": "Create a document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get many documents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many documents": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update a document": {
+      "main": [
+        [
+          {
+            "node": "Update Docsync",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Communication ID": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Communication  with File url": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "original Communication Id": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request (To Download Binary Files )",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Docsync": {
+      "main": [
+        [
+          {
+            "node": "Replace Me1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "e99acb10-a3e4-4c57-b095-cd0f4a87d3a4",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "95e36802bf58d2051ef2ba3daf7047d922424ebe681ae4034d17d4456bf02c8a"
+  },
+  "id": "rsLQA9mR7fzkT02d",
+  "tags": []
+}

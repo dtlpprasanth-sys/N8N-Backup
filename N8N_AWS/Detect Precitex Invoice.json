@@ -1,0 +1,218 @@
+{
+  "name": "Detect Precitex Invoice",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 10
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -336,
+        -240
+      ],
+      "id": "826dd29b-6be0-4462-856c-5d37c40c7d6f",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "docType": "Communication",
+        "returnAll": true,
+        "options": {
+          "fields": [
+            "*"
+          ],
+          "filters": {
+            "customProperty": [
+              {
+                "field": "communication_date",
+                "operator": "equalsGreater",
+                "value": "= {{ $now.minus({days:1}).toFormat('yyyy-MM-dd') }}"
+              },
+              {
+                "field": "process_status",
+                "value": "Pending"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.erpNext",
+      "typeVersion": 1,
+      "position": [
+        -112,
+        -240
+      ],
+      "id": "a76705c7-93dc-46d7-96a6-557319b3f6cb",
+      "name": "Get many documents",
+      "credentials": {
+        "erpNextApi": {
+          "id": "Ap4xMpiohheRFSqL",
+          "name": "ERPNext account(Prasanth)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1fdbe7c2-9337-4a58-9cc3-68f3931a8e9f",
+              "name": "Communication ID",
+              "value": "={{ $json.name }}",
+              "type": "string"
+            },
+            {
+              "id": "b0bc0662-3c80-4ada-a923-651ec4096d21",
+              "name": "subject",
+              "value": "={{ $json.subject }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        112,
+        -240
+      ],
+      "id": "3bd1c0db-4bb0-4538-b60a-e117a2a9ee5f",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "jsCode": "// The exact phrase you are looking for\nconst searchPhrase = \"Spool file of Gst Invoice No\";\n\n// $input.all() gets all 643 items from your 'Edit Fields' node\nreturn $input.all().filter(item => {\n  // Get the subject from your Set/Edit Fields node\n  const subject = item.json.subject || \"\";\n  \n  // Check if the subject contains the phrase (case-insensitive)\n  return subject.toLowerCase().includes(searchPhrase.toLowerCase());\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        336,
+        -240
+      ],
+      "id": "8358f4ec-97d5-4767-9333-f375667566e7",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "docType": "Communication",
+        "documentName": "={{ $json[\"Communication ID\"] }}",
+        "properties": {
+          "customProperty": [
+            {
+              "field": "process_status",
+              "value": "Processed"
+            },
+            {
+              "field": "doc_type",
+              "value": "Precitex Purchase Invoice"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.erpNext",
+      "typeVersion": 1,
+      "position": [
+        560,
+        -240
+      ],
+      "id": "7c66aed5-e94c-4251-928e-ccc3121df652",
+      "name": "Update a document",
+      "credentials": {
+        "erpNextApi": {
+          "id": "Ap4xMpiohheRFSqL",
+          "name": "ERPNext account(Prasanth)"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "Schedule Trigger": [
+      {
+        "json": {
+          "timestamp": "2025-12-30T01:46:11.079-05:00",
+          "Readable date": "December 30th 2025, 1:46:11 am",
+          "Readable time": "1:46:11 am",
+          "Day of week": "Tuesday",
+          "Year": "2025",
+          "Month": "December",
+          "Day of month": "30",
+          "Hour": "01",
+          "Minute": "46",
+          "Second": "11",
+          "Timezone": "America/New_York (UTC-05:00)"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get many documents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many documents": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Update a document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "b52e6beb-ff3d-452c-a5f4-06bba1d301cc",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "95e36802bf58d2051ef2ba3daf7047d922424ebe681ae4034d17d4456bf02c8a"
+  },
+  "id": "U3RqfR4uNzxYr7pE",
+  "tags": []
+}

@@ -1,0 +1,618 @@
+{
+  "name": "DPO (Purchase Order)",
+  "nodes": [
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7209ff56-c9e8-441d-b784-d870ae08b47e",
+              "name": "subject",
+              "value": "={{ $json.subject }}",
+              "type": "string"
+            },
+            {
+              "id": "4ce3fcd3-7571-4bf2-9c8b-73698c47f6a3",
+              "name": "Body",
+              "value": "={{ $json.content }}{{ $json.text_content }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        720,
+        -32
+      ],
+      "id": "dafe699c-0d0a-427c-84ec-3c64931d9558",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ------------------ CLEANING HELPERS ------------------ //\nfunction cleanText(text) {\n    if (!text) return '';\n    let cleaned = text;\n\n    // 1. Replace <br> with a comma and space for readable addresses\n    cleaned = cleaned.replace(/<br\\s*\\/?>/gi, ', ');\n\n    // 2. Remove all other HTML tags\n    cleaned = cleaned.replace(/<[^>]*>/g, ' ');\n\n    // 3. Decode HTML entities\n    cleaned = cleaned.replace(/&amp;/g, '&')\n                     .replace(/&nbsp;/g, ' ')\n                     .replace(/&#x202F;/g, ' ');\n\n    // 4. Remove extra whitespace\n    cleaned = cleaned.replace(/\\s\\s+/g, ' ').trim();\n    \n    // 5. Remove leading/trailing commas if resulted from step 1\n    cleaned = cleaned.replace(/^,|,$/g, '').trim();\n\n    return cleaned;\n}\n\n// Convert DD/MM/YYYY → YYYY-MM-DD\nfunction formatDate(dateStr) {\n    if (!dateStr) return '';\n    // Remove any text that isn't part of the date (basic cleanup)\n    const cleanDate = dateStr.replace(/[^0-9\\/]/g, '');\n    const parts = cleanDate.split('/');\n    if (parts.length === 3) {\n        return `${parts[2]}-${parts[1]}-${parts[0]}`;\n    }\n    return dateStr;\n}\n\n// ------------------ MAIN EXTRACTION ------------------ //\nconst groupedData = {};\n\nfor (const item of items) {\n    // Handle different input keys (Body, html, textAsHtml)\n    const html = item.json.Body || item.json.html || item.json.textAsHtml || \"\";\n\n    // HELPER: Extract value based on Label\n    // This Regex allows for tags (like <span>) to exist around the Label text\n    // It looks for: <td..> ... Label ... </td> <td..> (Capture Value) </td>\n    const getValue = (label) => {\n        const regex = new RegExp(\n            `<td[^>]*>[\\\\s\\\\S]*?${label}[\\\\s\\\\S]*?<\\\\/td>\\\\s*<td[^>]*>([\\\\s\\\\S]*?)<\\\\/td>`,\n            \"i\"\n        );\n        const match = html.match(regex);\n        return match ? cleanText(match[1]) : '';\n    };\n\n    // ------------------ HEADER DATA ------------------ //\n    \n    // 1. Extract PO No\n    const po_no = getValue(\"PO No\\\\.\");\n    if (!po_no) continue; // Skip if no PO found\n\n    if (!groupedData[po_no]) {\n\n        // 2. Extract MILL / Client Data specially\n        // The Mill label cell looks like: <td><span>Mill</span>   650111</td>\n        // We capture the \"650111\" part separately if possible, and the next cell is the address.\n        const millSectionRegex = /Mill[\\s\\S]*?<\\/td>\\s*<td[^>]*>([\\s\\S]*?)<\\/td>/i;\n        const millMatch = html.match(millSectionRegex);\n        \n        let clientAddress = \"\";\n        if (millMatch) {\n            clientAddress = cleanText(millMatch[1]);\n        }\n\n        // Optional: Try to find the Mill Code (the number next to \"Mill\")\n        // Looks for digits inside the cell containing \"Mill\"\n        const millCodeRegex = /Mill[\\s\\S]*?(\\d{6})[\\s\\S]*?<\\/td>/i;\n        const millCodeMatch = html.match(millCodeRegex);\n        const millCode = millCodeMatch ? millCodeMatch[1] : \"\";\n\n        groupedData[po_no] = {\n            po_no,\n            transaction_date: formatDate(getValue(\"PO Date\")),\n            supplier: getValue(\"Supplier\"),\n            destination: getValue(\"Destination\"),\n            mode_of_despatch: getValue(\"Mode of despatch\"),\n            // Use the extracted address\n            client_name: clientAddress,\n            mill_code: millCode, \n            company: \"White&co.\", // Static as per your code\n            special_instructions: getValue(\"Special Instructions\"), // Added this field\n            items: []\n        };\n    }\n\n    // ------------------ TABLE ITEM EXTRACTION ------------------ //\n    // Split by table rows\n    const rows = html.split(/<tr[^>]*>/i);\n\n    for (const row of rows) {\n        // Split row by table cells\n        const cells = row\n            .split(/<td[^>]*>/i)\n            .slice(1) // Remove the first split chunk (before the first td)\n            .map(cell => {\n                // Remove closing td and clean\n                return cleanText(cell.split(\"</td>\")[0]);\n            });\n\n        // Item rows have 8 columns based on the screenshot/HTML\n        if (cells.length >= 8) {\n            const sr = cells[0];\n\n            // Only process if First Column (Sr) is a number\n            if (sr && !isNaN(parseInt(sr))) {\n                groupedData[po_no].items.push({\n                    sr_no: parseInt(sr),\n                    item_code: cells[1],\n                    qty: parseFloat(cells[2]),\n                    base_pl: cells[3],\n                    uom: \"Nos\",        // Hardcoded in your original logic\n                    stock_uom: \"Nos\",  // Hardcoded in your original logic\n                    rate: parseFloat(cells[4]),\n                    amount: parseFloat(cells[5]),\n                    required_by: formatDate(cells[6]), // Ensure date format matches\n                    discount: cells[7]\n                });\n            }\n        }\n    }\n}\n\n// Return to n8n\nreturn Object.values(groupedData).map(p => ({ json: p }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        944,
+        -32
+      ],
+      "id": "85783df1-9ec2-4ef2-b6ba-4576717632dc",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "docType": "Email%20Tracker%20Config",
+        "documentName": "klvnumlv9u"
+      },
+      "type": "n8n-nodes-base.erpNext",
+      "typeVersion": 1,
+      "position": [
+        48,
+        -32
+      ],
+      "id": "d68092ce-3ac8-45e5-9e9f-8c80b20530b7",
+      "name": "Get a document1",
+      "credentials": {
+        "erpNextApi": {
+          "id": "Ap4xMpiohheRFSqL",
+          "name": "ERPNext account(Prasanth)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "items",
+        "options": {}
+      },
+      "id": "fdc1d088-5882-4c4c-a30f-52b9e50c94a7",
+      "name": "Split Items",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1392,
+        -96
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "docType": "Item",
+        "limit": 1,
+        "options": {
+          "filters": {
+            "customProperty": [
+              {
+                "field": "item_name",
+                "value": "={{ $json.item_code }}"
+              }
+            ]
+          }
+        }
+      },
+      "id": "ba9a58b1-19d4-4335-8664-2ee80ca8cd60",
+      "name": "Lookup Item Code",
+      "type": "n8n-nodes-base.erpNext",
+      "typeVersion": 1,
+      "position": [
+        1616,
+        -96
+      ],
+      "credentials": {
+        "erpNextApi": {
+          "id": "Ap4xMpiohheRFSqL",
+          "name": "ERPNext account(Prasanth)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. Fetch the original items from the Split node so we can look them up\nconst splitNodeItems = $items(\"Split Items\");\n\nreturn $input.all().map(item => {\n  \n  // 2. Get the Paired Index (This tells us which original item this result belongs to)\n  const originalIndex = item.pairedItem.item;\n  \n  // 3. Retrieve the original data using that index\n  const originalData = splitNodeItems[originalIndex].json;\n\n  // 4. Get the Real ID from the current ERPNext result\n  // If ERPNext returned a name, use it. Otherwise fallback to the old code.\n  const realItemCode = item.json.name ? item.json.name : originalData.item_code;\n\n  // 5. Return the merged object\n  return {\n    json: {\n      ...originalData, // Keep quantity, rate, etc.\n      \n      // Swap the values\n      item_code: realItemCode,          // The new ID from ERPNext\n      item_name: originalData.item_code, // Save the old name\n      \n      // FIX: ERPNext requires 'schedule_date', not 'required_by'\n      schedule_date: originalData.required_by\n    }\n  };\n});"
+      },
+      "id": "163bfa30-04dc-494c-89f4-47f5a5a3ff4b",
+      "name": "Swap Item Codes",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1840,
+        -96
+      ]
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "items",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        2064,
+        -96
+      ],
+      "id": "88d0b866-5a17-4024-a784-08e3033b3951",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c9e291fe-ac17-46ce-8a1c-c17255b99519",
+              "name": "po_no",
+              "value": "={{ $('Code in JavaScript').item.json.po_no }}",
+              "type": "string"
+            },
+            {
+              "id": "af03a0ef-bcd1-44eb-b3b9-bd280b06e18d",
+              "name": "transaction_date",
+              "value": "={{ $('Code in JavaScript').item.json.transaction_date }}",
+              "type": "string"
+            },
+            {
+              "id": "24a3b167-0b35-4e96-8768-500bab0b252b",
+              "name": "destination",
+              "value": "={{ $('Code in JavaScript').item.json.destination }}",
+              "type": "string"
+            },
+            {
+              "id": "05171a9a-e8b7-4a4a-9767-e8e1c7baaa7c",
+              "name": "mode_of_despatch",
+              "value": "={{ $('Code in JavaScript').item.json.mode_of_despatch }}",
+              "type": "string"
+            },
+            {
+              "id": "efd4e625-c0ac-4ac7-b9c1-16362be9191a",
+              "name": "client_name",
+              "value": "={{ $('Code in JavaScript').item.json.client_name }}",
+              "type": "string"
+            },
+            {
+              "id": "d3af7ba8-0bef-4830-ba32-5e413b79667a",
+              "name": "mill_code",
+              "value": "={{ $('Code in JavaScript').item.json.mill_code }}",
+              "type": "string"
+            },
+            {
+              "id": "9d2a9a61-eea4-48c4-b0df-4a8f84a2af87",
+              "name": "special_instructions",
+              "value": "={{ $('Code in JavaScript').item.json.special_instructions }}",
+              "type": "string"
+            },
+            {
+              "id": "e7e5a97e-8f33-4dca-9a56-808fcb76ee9b",
+              "name": "items",
+              "value": "={{ $json.items }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2288,
+        -96
+      ],
+      "id": "3189329b-ed6e-4b1a-b77d-d86de75a55f4",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "docType": "Purchase%20Order",
+        "properties": {
+          "customProperty": [
+            {
+              "field": "reference_no",
+              "value": "={{ $json.po_no }}"
+            },
+            {
+              "field": "transaction_date",
+              "value": "={{ $json.transaction_date }}"
+            },
+            {
+              "field": "destination",
+              "value": "={{ $json.destination }}"
+            },
+            {
+              "field": "mode_of_dispatch",
+              "value": "={{ $json.mode_of_despatch }}"
+            },
+            {
+              "field": "precitex_customer_name",
+              "value": "={{ $json.client_name }}"
+            },
+            {
+              "field": "client_id",
+              "value": "={{ $json.mill_code }}"
+            },
+            {
+              "field": "items",
+              "value": "={{ $json.items }}"
+            },
+            {
+              "field": "supplier",
+              "value": "Precitex"
+            },
+            {
+              "field": "company",
+              "value": "White & Co."
+            },
+            {
+              "field": "dpo",
+              "value": "1"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.erpNext",
+      "typeVersion": 1,
+      "position": [
+        2512,
+        -96
+      ],
+      "id": "11ac9088-7fb7-48dd-bcad-78b022fd573c",
+      "name": "Create a Purchase Order",
+      "credentials": {
+        "erpNextApi": {
+          "id": "Ap4xMpiohheRFSqL",
+          "name": "ERPNext account(Prasanth)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -176,
+        -32
+      ],
+      "id": "bedb037f-238f-48b5-8b47-242c33559fa3",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "docType": "Communication",
+        "documentName": "={{ $json.name }}"
+      },
+      "type": "n8n-nodes-base.erpNext",
+      "typeVersion": 1,
+      "position": [
+        496,
+        -32
+      ],
+      "id": "dcb91502-206f-4590-9d66-86ce9b6ac6a2",
+      "name": "Get a document2",
+      "credentials": {
+        "erpNextApi": {
+          "id": "Ap4xMpiohheRFSqL",
+          "name": "ERPNext account(Prasanth)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1168,
+        -32
+      ],
+      "id": "404ef24d-14cc-4930-b758-b4be22fa78b6",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "name": "Replace Me",
+      "typeVersion": 1,
+      "position": [
+        2960,
+        -32
+      ],
+      "id": "bf20501d-822a-4455-b12d-a19887c52b83"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "docType": "Email%20Tracker%20Config",
+        "documentName": "klvnumlv9u",
+        "properties": {
+          "customProperty": [
+            {
+              "field": "last_dpo_date",
+              "value": "={{ $now.setZone('Asia/Kolkata').toFormat('yyyy-MM-dd HH:mm:ss') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.erpNext",
+      "typeVersion": 1,
+      "position": [
+        2736,
+        -96
+      ],
+      "id": "c4633733-82e3-4f75-a9b2-0311cd29ec33",
+      "name": "Update a FetchTime",
+      "credentials": {
+        "erpNextApi": {
+          "id": "Ap4xMpiohheRFSqL",
+          "name": "ERPNext account(Prasanth)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## DPO (Purchase Order)- Extracter Precitex Po\n**Double click** to edit me. [Guide](https://docs.n8n.io/workflows/components/sticky-notes/)",
+        "height": 448,
+        "width": 3456
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -272,
+        -208
+      ],
+      "typeVersion": 1,
+      "id": "dd58bfda-2d3a-41eb-8148-b024839e38b6",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "docType": "Communication",
+        "returnAll": true,
+        "options": {
+          "filters": {
+            "customProperty": [
+              {
+                "field": "sender",
+                "value": "precitex.dpo.net@gmail.com"
+              },
+              {
+                "field": "process_status",
+                "value": "Pending"
+              },
+              {
+                "field": "communication_date",
+                "operator": "greater",
+                "value": "={{ $json.last_dpo_date }}"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.erpNext",
+      "typeVersion": 1,
+      "position": [
+        272,
+        -32
+      ],
+      "id": "d2e9aa40-337e-47fa-bba3-9928399746f8",
+      "name": "Get many documents",
+      "credentials": {
+        "erpNextApi": {
+          "id": "Ap4xMpiohheRFSqL",
+          "name": "ERPNext account(Prasanth)"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "Schedule Trigger": [
+      {
+        "json": {
+          "timestamp": "2025-12-12T01:45:02.960-05:00",
+          "Readable date": "December 12th 2025, 1:45:02 am",
+          "Readable time": "1:45:02 am",
+          "Day of week": "Friday",
+          "Year": "2025",
+          "Month": "December",
+          "Day of month": "12",
+          "Hour": "01",
+          "Minute": "45",
+          "Second": "02",
+          "Timezone": "America/New_York (UTC-05:00)"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a document1": {
+      "main": [
+        [
+          {
+            "node": "Get many documents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Items": {
+      "main": [
+        [
+          {
+            "node": "Lookup Item Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lookup Item Code": {
+      "main": [
+        [
+          {
+            "node": "Swap Item Codes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Swap Item Codes": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Create a Purchase Order",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a Purchase Order": {
+      "main": [
+        [
+          {
+            "node": "Update a FetchTime",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get a document1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a document2": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Split Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Replace Me": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update a FetchTime": {
+      "main": [
+        [
+          {
+            "node": "Replace Me",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many documents": {
+      "main": [
+        [
+          {
+            "node": "Get a document2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "2bf29252-4fea-4b03-9c5c-4b0cf185d2ff",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "95e36802bf58d2051ef2ba3daf7047d922424ebe681ae4034d17d4456bf02c8a"
+  },
+  "id": "vUfPqTG6bSJEV14g",
+  "tags": []
+}

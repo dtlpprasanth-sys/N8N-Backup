@@ -1,0 +1,745 @@
+{
+  "name": "Create Precitex Invoice",
+  "nodes": [
+    {
+      "parameters": {
+        "url": "http://13.234.62.39:8080/api/resource/File",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "filters",
+              "value": "=[[\"attached_to_name\", \"like\", \"%{{ $json.name }}%\"]]"
+            },
+            {
+              "name": "fields",
+              "value": "[\"file_name\", \"file_url\"]"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -944,
+        0
+      ],
+      "id": "4f26762a-4642-4606-8691-dcbd8ae28002",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "KZDBOwB51l3Gs6Xh",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "fromJson",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        -720,
+        0
+      ],
+      "id": "4118cd41-2ce7-4c09-bb2b-04ca798b170f",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "data.data",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -496,
+        0
+      ],
+      "id": "ed54ed1c-9ffb-433b-87e3-9f0a9a4d9281",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        -48,
+        0
+      ],
+      "id": "19a76088-926b-48e3-ae92-21e6c24bfed5",
+      "name": "Extract from PO"
+    },
+    {
+      "parameters": {
+        "url": "=http://13.234.62.39:8080{{ $json.file_url }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -272,
+        0
+      ],
+      "id": "094e3f37-53d5-4704-a03d-eea8c10658c2",
+      "name": "HTTP Request (To Download Binary Files )",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "KZDBOwB51l3Gs6Xh",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a strict document extraction engine.\n\nExtract multiple invoices from the provided text and return the result as a SINGLE, VALID JSON object fully compatible with ERPNext / MySQL.\n\n========================\nSTRICT OUTPUT RULES\n\nOutput ONLY raw JSON\n\nNO markdown\n\nNO explanations\n\nNO comments\n\nJSON MUST be valid and parsable\n\nEnd the response with the final closing }\n\nDo NOT wrap invoice data inside arrays\n\nNo newline characters inside values\n\nNo extra spaces inside values\n\nAll numeric fields MUST be numbers (not strings)\n\n========================\nDATE & REFERENCE RULES\n\nConvert all dates to YYYY-MM-DD\n\nReplace all / with -\nExample: 17724-06/12/2025 → 17724-06-12-2025\n\nLocate the line containing the text \"HAND DELIVERY\"\n\nOn that SAME line, two number-date values appear BEFORE the text \"HAND DELIVERY\"\n\nEach number-date value follows the pattern: NUMBER-DD-MM-YYYY\n\nREFERENCE POSITION RULE (CRITICAL):\n\nThe LEFT number-date value → invoice_reference\n\nThe RIGHT number-date value → dc_reference\n\ndelivery_mode → \"HAND DELIVERY\"\n\nfull_invoice_no MUST be taken from invoice_reference\n\n========================\nEXTRACTION RULES\n\nExtract each invoice separately\n\nitem_code is the 4-digit numeric code between the line item number and the item description\n\nItem row format:\nitem_no | item_code | description | quantity | rate | amount\n\nquantity, rate, amount, and all totals MUST be numeric\n\nIgnore formatting characters, alignment spacing, and control/escape characters\n\nIf a field is missing:\n\nUse \"\" for strings\n\nUse 0 for numbers\n\n========================\nVENDOR DETAILS RULES\n\nvendor name is the company name in uppercase near the top of the document\n\ngstin is the value following \"GSTIN :\"\n\naddress is the full postal address block\n\nstate is the value following \"State :\"\n\n========================\nTOTALS & TAX RULES\n\nsub_total → sum of item amounts\n\ntaxable_value → value shown next to \"Taxable Value\"\n\nsgst_amount → value shown next to \"SGST\"\n\ncgst_amount → value shown next to \"CGST\"\n\ngrand_total → final payable amount (largest total at bottom)\n\ngrand_total_words → textual amount ending with \"Only\"\n\n========================\nREQUIRED JSON STRUCTURE (DO NOT CHANGE)\n\n{\n\"invoice 1\": {\n\"invoice_header\": {\n\"full_invoice_no\": \"\",\n\"date\": \"YYYY-MM-DD\",\n\"dc_reference\": \"\",\n\"invoice_reference\": \"\",\n\"delivery_mode\": \"\"\n},\n\"vendor_details\": {\n\"name\": \"\",\n\"gstin\": \"\",\n\"address\": \"\",\n\"state\": \"\"\n},\n\"items\": [\n{\n\"item_no\": 1,\n\"item_code\": \"\",\n\"description\": \"\",\n\"quantity\": 0,\n\"rate\": 0,\n\"amount\": 0\n}\n],\n\"tax_and_totals\": {\n\"sub_total\": 0,\n\"taxable_value\": 0,\n\"sgst_amount\": 0,\n\"cgst_amount\": 0,\n\"grand_total\": 0,\n\"grand_total_words\": \"\"\n}\n}\n}\n\n========================\nINPUT TEXT\n\n{{ $json.data }}",
+        "needsFallback": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        176,
+        0
+      ],
+      "id": "11888ef5-584c-4850-b551-86f3b2617408",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "llama-3.1-8b-instant",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        192,
+        224
+      ],
+      "id": "0a98e217-69c3-45d3-8245-c8eea7160c09",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "hrr6JX3rRNsV7t56",
+          "name": "Groq account(Sneha)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        320,
+        224
+      ],
+      "id": "25420503-d5c4-4f81-9780-513ddcc26aa4",
+      "name": "Groq Chat Model1",
+      "credentials": {
+        "groqApi": {
+          "id": "vXEkjDoQdItMsfhz",
+          "name": "Groq account(sasi)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "language": "python",
+        "pythonCode": "import json\n\nnew_items = []\n\nfor item in items:\n    try:\n        output_string = item[\"json\"].get(\"output\", \"\").strip()\n\n        # Remove markdown if any\n        output_string = output_string.replace(\"```json\", \"\").replace(\"```\", \"\").strip()\n\n        # Hard validation\n        parsed_data = json.loads(output_string)\n\n        new_items.append({\"json\": parsed_data})\n\n    except Exception as e:\n        new_items.append({\n            \"json\": {\n                \"error\": \"JSON parsing failed\",\n                \"details\": str(e),\n                \"raw_output\": output_string[:1500]\n            }\n        })\n\nreturn new_items"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        528,
+        0
+      ],
+      "id": "31904410-466b-4b6d-8616-afe6ce44a272",
+      "name": "Code in Python (Beta)"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        976,
+        128
+      ],
+      "id": "e85c7de0-d25e-4c66-8792-f690aa98585a",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "name": "Replace Me",
+      "typeVersion": 1,
+      "position": [
+        2096,
+        128
+      ],
+      "id": "029c85dc-46b4-4985-88a6-f0dd3185be22"
+    },
+    {
+      "parameters": {
+        "jsCode": "const inputData = $input.first().json;\nconst output = [];\n\n// Example: value coming from previous node\nconst externalName = $('Get a Invoice').item.json.name || \"\";\n\nfor (const key in inputData) {\n  if (Object.prototype.hasOwnProperty.call(inputData, key)) {\n    const invoiceData = inputData[key];\n\n    output.push({\n      invoice_label: key,\n      source_name: externalName, // ✅ passed field\n      ...invoiceData\n    });\n  }\n}\n\nreturn output;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        752,
+        0
+      ],
+      "id": "6a4dea1c-65de-408d-8915-a8146909fa57",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1d78c7a1-7e39-45d6-8db6-20165bdd4292",
+              "name": "invoice_header.date",
+              "value": "={{ $json.invoice_header.date }}",
+              "type": "string"
+            },
+            {
+              "id": "5de0f776-81ef-4c99-b296-8bfb9406e400",
+              "name": "invoice_header.dc_reference",
+              "value": "={{ $json.invoice_header.dc_reference }}",
+              "type": "string"
+            },
+            {
+              "id": "87dcdb99-cd9c-4202-9027-cdd1c1f3ad2b",
+              "name": "invoice_header.invoice_reference",
+              "value": "={{ $json.invoice_header.invoice_reference }}",
+              "type": "string"
+            },
+            {
+              "id": "e8f7e40a-ae27-450d-ad7c-fe264458f03f",
+              "name": "invoice_header.delivery_mode",
+              "value": "={{ $json.invoice_header.delivery_mode }}",
+              "type": "string"
+            },
+            {
+              "id": "21d2346c-4392-4bcc-b231-57483db78a40",
+              "name": "items",
+              "value": "={{ $json.items }}",
+              "type": "array"
+            },
+            {
+              "id": "dc2259ca-f187-4149-baf6-06f5af7cd34f",
+              "name": "tax_and_totals",
+              "value": "={{ $json.tax_and_totals }}",
+              "type": "object"
+            },
+            {
+              "id": "1cd57518-71c1-4571-abe4-10e2f353810e",
+              "name": "source_name",
+              "value": "={{ $json.source_name }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1200,
+        64
+      ],
+      "id": "4082161b-492b-44e7-b212-d082da434aa1",
+      "name": "match fields"
+    },
+    {
+      "parameters": {
+        "docType": "Precitex%20Purchase%20Invoice",
+        "properties": {
+          "customProperty": [
+            {
+              "field": "date",
+              "value": "={{ $json.invoice_header.date }}"
+            },
+            {
+              "field": "purchase_order_no",
+              "value": "={{ $json.invoice_header.dc_reference }}"
+            },
+            {
+              "field": "invoice_no",
+              "value": "={{ $json.invoice_header.invoice_reference }}"
+            },
+            {
+              "field": "delivery_mode",
+              "value": "={{ $json.invoice_header.delivery_mode }}"
+            },
+            {
+              "field": "total",
+              "value": "={{ $json.tax_and_totals.taxable_value }}"
+            },
+            {
+              "field": "cgst",
+              "value": "={{ $json.tax_and_totals.cgst_amount }}"
+            },
+            {
+              "field": "sgst",
+              "value": "={{ $json.tax_and_totals.sgst_amount }}"
+            },
+            {
+              "field": "grand_total",
+              "value": "={{ $json.tax_and_totals.grand_total }}"
+            },
+            {
+              "field": "table",
+              "value": "={{ $json.items }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.erpNext",
+      "typeVersion": 1,
+      "position": [
+        1424,
+        64
+      ],
+      "id": "7247d626-333e-4fa7-831b-d08adb4a242e",
+      "name": "Create a document",
+      "credentials": {
+        "erpNextApi": {
+          "id": "Ap4xMpiohheRFSqL",
+          "name": "ERPNext account(Prasanth)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "docType": "Communication",
+        "limit": 1,
+        "options": {
+          "filters": {
+            "customProperty": [
+              {
+                "field": "doc_type",
+                "value": "Precitex Purchase Invoice"
+              },
+              {
+                "field": "process_status",
+                "value": "Processed"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.erpNext",
+      "typeVersion": 1,
+      "position": [
+        -1616,
+        128
+      ],
+      "id": "47a3a357-4e14-46a4-9434-9c327799ea0a",
+      "name": "Get many documents",
+      "executeOnce": false,
+      "credentials": {
+        "erpNextApi": {
+          "id": "Ap4xMpiohheRFSqL",
+          "name": "ERPNext account(Prasanth)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -1392,
+        128
+      ],
+      "id": "4d7755ac-8bde-4c3d-a067-817f26a99053",
+      "name": "Loop Over Items1"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "docType": "Communication",
+        "documentName": "={{ $('match fields').item.json.source_name }}",
+        "properties": {
+          "customProperty": [
+            {
+              "field": "process_status",
+              "value": "Document Created"
+            },
+            {
+              "field": "created_document_id",
+              "value": "={{ $json.name }}"
+            },
+            {
+              "field": "reference_doctype",
+              "value": "Precitex Purchase Invoice"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.erpNext",
+      "typeVersion": 1,
+      "position": [
+        1648,
+        64
+      ],
+      "id": "830f1fb4-e5cb-44fc-8aef-2ef30e9bc677",
+      "name": "Update a document",
+      "credentials": {
+        "erpNextApi": {
+          "id": "Ap4xMpiohheRFSqL",
+          "name": "ERPNext account(Prasanth)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 3
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1872,
+        64
+      ],
+      "id": "6fa1ef82-01ff-42d0-91d2-e2de3ed7f158",
+      "name": "Wait",
+      "webhookId": "93454d7a-d34d-4e0b-8eae-3e4fc51f9e17"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 10
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -1840,
+        128
+      ],
+      "id": "cff2b7e0-8b0d-4457-8636-4cbbe7480758",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "docType": "Communication",
+        "documentName": "={{ $json.name }}"
+      },
+      "type": "n8n-nodes-base.erpNext",
+      "typeVersion": 1,
+      "position": [
+        -1168,
+        0
+      ],
+      "id": "d8bcc377-e71e-4ae5-ba87-eb10dc4dd2a3",
+      "name": "Get a Invoice",
+      "credentials": {
+        "erpNextApi": {
+          "id": "Ap4xMpiohheRFSqL",
+          "name": "ERPNext account(Prasanth)"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "Schedule Trigger": [
+      {
+        "json": {
+          "timestamp": "2025-12-30T04:30:05.008-05:00",
+          "Readable date": "December 30th 2025, 4:30:05 am",
+          "Readable time": "4:30:05 am",
+          "Day of week": "Tuesday",
+          "Year": "2025",
+          "Month": "December",
+          "Day of month": "30",
+          "Hour": "04",
+          "Minute": "30",
+          "Second": "05",
+          "Timezone": "America/New_York (UTC-05:00)"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request (To Download Binary Files )",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from PO": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request (To Download Binary Files )": {
+      "main": [
+        [
+          {
+            "node": "Extract from PO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code in Python (Beta)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Code in Python (Beta)": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "match fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Replace Me": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "match fields": {
+      "main": [
+        [
+          {
+            "node": "Create a document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a document": {
+      "main": [
+        [
+          {
+            "node": "Update a document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many documents": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items1": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Get a Invoice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update a document": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Replace Me",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get many documents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a Invoice": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "96014d14-67ff-4df3-88c7-20629fc2fe09",
+  "meta": {
+    "instanceId": "95e36802bf58d2051ef2ba3daf7047d922424ebe681ae4034d17d4456bf02c8a"
+  },
+  "id": "V2kWOyZiFU7jfxqA",
+  "tags": []
+}
