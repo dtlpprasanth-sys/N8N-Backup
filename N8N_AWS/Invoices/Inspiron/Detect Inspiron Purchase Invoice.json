@@ -1,0 +1,237 @@
+{
+  "name": "Detect Inspiron Purchase Invoice",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 10
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -320,
+        -144
+      ],
+      "id": "bbc0327c-347f-429d-9787-4d0142d243b5",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "docType": "Communication",
+        "returnAll": true,
+        "options": {
+          "fields": [
+            "*"
+          ],
+          "filters": {
+            "customProperty": [
+              {
+                "field": "communication_date",
+                "operator": "equalsGreater",
+                "value": "= {{ $now.minus({days:1}).toFormat('yyyy-MM-dd') }}"
+              },
+              {
+                "field": "process_status",
+                "value": "Pending"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.erpNext",
+      "typeVersion": 1,
+      "position": [
+        -96,
+        -144
+      ],
+      "id": "c32f1244-a255-4e47-821e-73857b8525ff",
+      "name": "Get many documents",
+      "credentials": {
+        "erpNextApi": {
+          "id": "Ap4xMpiohheRFSqL",
+          "name": "ERPNext account(Prasanth)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1fdbe7c2-9337-4a58-9cc3-68f3931a8e9f",
+              "name": "Communication ID",
+              "value": "={{ $json.name }}",
+              "type": "string"
+            },
+            {
+              "id": "b0bc0662-3c80-4ada-a923-651ec4096d21",
+              "name": "subject",
+              "value": "={{ $json.subject }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        128,
+        -144
+      ],
+      "id": "4cf87d3f-081e-46d0-9a79-c6e9b559c365",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all().filter(item => {\n  // 1. Get the subject, convert to string, and handle nulls\n  let subject = (item.json.subject || \"\").toString().toLowerCase().trim();\n  \n  // 2. Detect subjects that specifically START with \"despatch detail\"\n  // This will match \"Despatch detail - The Rajaratna Mills...\" \n  // but will NOT match \"Re: Despatch detail...\"\n  return subject.startsWith(\"despatch detail\");\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        352,
+        -144
+      ],
+      "id": "78e205bc-5e62-434d-bb86-239fc57d2634",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "docType": "Communication",
+        "documentName": "={{ $json[\"Communication ID\"] }}",
+        "properties": {
+          "customProperty": [
+            {
+              "field": "process_status",
+              "value": "Processed"
+            },
+            {
+              "field": "doc_type",
+              "value": "Inspiron Purchase Invoice"
+            },
+            {
+              "field": "recipients",
+              "value": "sales-cbe@whitenco.net"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.erpNext",
+      "typeVersion": 1,
+      "position": [
+        800,
+        -144
+      ],
+      "id": "b4a5040b-46a7-4d75-80ad-e7d2f5fe9838",
+      "name": "Update a document",
+      "credentials": {
+        "erpNextApi": {
+          "id": "Ap4xMpiohheRFSqL",
+          "name": "ERPNext account(Prasanth)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        576,
+        -144
+      ],
+      "id": "2be8644a-d2ad-4e52-a86e-ee4212477aeb",
+      "name": "Loop Over Items"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get many documents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many documents": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update a document": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Update a document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "a42ad260-5166-4ceb-8b16-2bca3b7f7679",
+  "meta": {
+    "instanceId": "95e36802bf58d2051ef2ba3daf7047d922424ebe681ae4034d17d4456bf02c8a"
+  },
+  "id": "srBM8E0hkq5mp584",
+  "tags": []
+}

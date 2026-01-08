@@ -1,0 +1,235 @@
+{
+  "name": "Detect Suprem Invoice(Sasi)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {}
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        -96
+      ],
+      "id": "780f1413-245b-4339-846e-14a77e3e6d1b",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "docType": "Communication",
+        "returnAll": true,
+        "options": {
+          "fields": [
+            "*"
+          ],
+          "filters": {
+            "customProperty": [
+              {
+                "field": "process_status",
+                "value": "Pending"
+              },
+              {
+                "field": "communication_date",
+                "operator": "equalsGreater",
+                "value": "= {{ $now.minus({months:2}).toFormat('yyyy-MM-dd') }}"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.erpNext",
+      "typeVersion": 1,
+      "position": [
+        224,
+        -96
+      ],
+      "id": "f7e0f16d-5e6e-4c90-b9ad-bf5b5c068324",
+      "name": "Get many documents",
+      "credentials": {
+        "erpNextApi": {
+          "id": "Ap4xMpiohheRFSqL",
+          "name": "ERPNext account(Prasanth)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ee023a1c-9f4f-4176-9d64-919488f4e6e9",
+              "name": "Communication ID",
+              "value": "={{ $json.name }}",
+              "type": "string"
+            },
+            {
+              "id": "e132aeef-f92c-4925-ae0c-13786e6582ef",
+              "name": "subject",
+              "value": "={{ $json.subject }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        448,
+        -96
+      ],
+      "id": "23d0bedb-81ca-4ff9-bf32-f6204a971108",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "e0f6c942-aa85-4d63-b8bd-0dc1131eb13c",
+              "leftValue": "={{ $json.subject }}",
+              "rightValue": "Fw: invoice Copy",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        672,
+        -96
+      ],
+      "id": "fa764c47-4709-4f48-8630-62999f7dd04a",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "docType": "Communication",
+        "documentName": "={{ $json[\"Communication ID\"] }}",
+        "properties": {
+          "customProperty": [
+            {
+              "field": "doc_type",
+              "value": "Supreme Invoice"
+            },
+            {
+              "field": "process_status",
+              "value": "Processed"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.erpNext",
+      "typeVersion": 1,
+      "position": [
+        896,
+        -96
+      ],
+      "id": "5a2d1389-0766-4cc5-854c-6aeca5d146cd",
+      "name": "Update a document",
+      "credentials": {
+        "erpNextApi": {
+          "id": "Ap4xMpiohheRFSqL",
+          "name": "ERPNext account(Prasanth)"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "Schedule Trigger": [
+      {
+        "json": {
+          "timestamp": "2025-12-30T00:00:44.146-05:00",
+          "Readable date": "December 30th 2025, 12:00:44 am",
+          "Readable time": "12:00:44 am",
+          "Day of week": "Tuesday",
+          "Year": "2025",
+          "Month": "December",
+          "Day of month": "30",
+          "Hour": "00",
+          "Minute": "00",
+          "Second": "44",
+          "Timezone": "America/New_York (UTC-05:00)"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get many documents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many documents": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Update a document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "05906168-1aa7-4d16-bb2e-0005999e5883",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "95e36802bf58d2051ef2ba3daf7047d922424ebe681ae4034d17d4456bf02c8a"
+  },
+  "id": "lVSlGKzBnk2r6KLq",
+  "tags": []
+}
