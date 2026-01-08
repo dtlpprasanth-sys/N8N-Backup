@@ -1,0 +1,815 @@
+{
+  "name": "Create A Supreme PO",
+  "nodes": [
+    {
+      "parameters": {
+        "url": "http://13.234.62.39:8080/api/resource/File",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "filters",
+              "value": "=[[\"attached_to_name\", \"like\", \"%{{ $json.name }}%\"]]"
+            },
+            {
+              "name": "fields",
+              "value": "[\"file_name\", \"file_url\"]"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -1696,
+        192
+      ],
+      "id": "c4491f35-8073-46d4-8751-e963a3096869",
+      "name": "HTTP Request1",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "KZDBOwB51l3Gs6Xh",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "fromJson",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        -1472,
+        192
+      ],
+      "id": "64fd7de8-34b4-4fe8-a277-a1dc1f7d65bd",
+      "name": "Extract from File2"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "data.data",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -1248,
+        192
+      ],
+      "id": "78f2fe54-9adf-45a3-b33a-92b361bbcde6",
+      "name": "Split Out1"
+    },
+    {
+      "parameters": {
+        "url": "=http://13.234.62.39:8080{{ $json.file_url }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -576,
+        0
+      ],
+      "id": "872b59e5-aefb-45d6-b4c7-d1384fac2c00",
+      "name": "HTTP Request (To Download Binary Files )1",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "KZDBOwB51l3Gs6Xh",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "xlsx",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        -352,
+        0
+      ],
+      "id": "721174bf-c196-4b36-91ab-df48fe2cef6e",
+      "name": "Extract from File3"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -1024,
+        192
+      ],
+      "id": "d3992332-1a07-40bf-baa6-d28bfcf2e389",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "name": "Replace Me",
+      "typeVersion": 1,
+      "position": [
+        768,
+        144
+      ],
+      "id": "8486c0ba-2c38-4768-bd0f-c7b52f36447a"
+    },
+    {
+      "parameters": {
+        "jsCode": "/**\n * Dynamically and robustly parses the entire raw JSON data from an OCR process \n * into a single, well-structured Delivery Order object.\n * This version includes fixes for combined address headers, Excel date conversion,\n * and parsing of mid-table charges like 'Delivery' or 'Freight'.\n *\n * @param {Array<Object>} rawData - The array of objects from the previous n8a node.\n * @returns {Object} A structured JSON object representing the complete delivery order.\n */\nfunction transformDeliveryOrder(rawData) {\n\n  // Helper function to convert Excel's serial number date to a readable string (DD/MM/YYYY)\n  function excelSerialDateToJSDate(serial) {\n    if (typeof serial !== 'number' || isNaN(serial) || serial <= 0) {\n        return serial; // Return original value if it's not a valid date serial number\n    }\n    const utc_days = Math.floor(serial - 25569);\n    const date_info = new Date(utc_days * 86400 * 1000);\n    const day = String(date_info.getUTCDate()).padStart(2, '0');\n    const month = String(date_info.getUTCMonth() + 1).padStart(2, '0');\n    const year = date_info.getUTCFullYear();\n    return `${day}/${month}/${year}`;\n  }\n\n  const result = {\n    documentTitle: \"DELIVERY ORDER\", company: \"The Supreme Industries Limited\", division: \"Materials Handling Division - Chennai\", orderToUnit: null, doNumber: null, doDate: null, customerPoNumber: null, sapDoNumber: null, invoiceAddress: \"\", deliveryAddress: { address: \"\", contactPerson: null, telephone: null }, gstNumber: null, pan: null, termsOfPayment: null, items: [], totals: { freight: 0, subTotal: 0, igstAmount: 0, totalOrderValue: 0 }, orcPayableTo: { name: null, pan: null }, transportDetails: { transporter: null, freightType: null }, deliverySchedule: null, specialInstructions: [], additionalServices: {}\n  };\n\n  let itemHeaderMap = {};\n  let addressLines = { invoice: [], delivery: [] };\n  // **FIX**: Use separate boolean flags for robust address parsing\n  let isParsingItems = false;\n  let isParsingInvoiceAddress = false;\n  let isParsingDeliveryAddress = false;\n\n  const findValueInRow = (row, label) => {\n    const keys = Object.keys(row);\n    const labelKey = keys.find(k => String(row[k] || '').trim() === label);\n    if (labelKey) {\n      const labelIndex = keys.indexOf(labelKey);\n      for (let i = labelIndex + 1; i < keys.length; i++) {\n          if(row[keys[i]] !== null && String(row[keys[i]]).trim() !== '') return row[keys[i]];\n      }\n    }\n    return null;\n  };\n\n  for (const row of rawData) {\n    const values = Object.values(row).map(v => (v ? String(v).trim() : ''));\n    \n    // --- State Management: Control what section we are currently parsing ---\n    if (values.includes('INVOICE ADDRESS')) isParsingInvoiceAddress = true;\n    if (values.includes('DELIVERY ADDRESS')) isParsingDeliveryAddress = true;\n    if (values.includes('GST Number')) { isParsingInvoiceAddress = false; isParsingDeliveryAddress = false; }\n    if (values.includes('Sr') && values.includes('Product')) isParsingItems = true;\n    if (values.includes('ORC Payable To')) isParsingItems = false;\n\n    // --- Parse Header & Top-Level Info ---\n    if (findValueInRow(row, 'Order To Unit :')) result.orderToUnit = findValueInRow(row, 'Order To Unit :');\n    if (findValueInRow(row, 'DO No')) result.doNumber = findValueInRow(row, 'DO No');\n    if (findValueInRow(row, 'Customer PO No & date:')) result.customerPoNumber = findValueInRow(row, 'Customer PO No & date:');\n    const doDateValue = findValueInRow(row, 'DO Dt');\n    if (doDateValue) result.doDate = excelSerialDateToJSDate(doDateValue);\n    if (findValueInRow(row, 'SAP DO No')) result.sapDoNumber = findValueInRow(row, 'SAP DO No');\n    if (findValueInRow(row, 'GST Number')) result.gstNumber = findValueInRow(row, 'GST Number');\n    if (findValueInRow(row, 'PAN')) result.pan = findValueInRow(row, 'PAN');\n    if (findValueInRow(row, 'Terms of Payment')) result.termsOfPayment = findValueInRow(row, 'Terms of Payment');\n\n    // --- Address Parsing Logic using flags ---\n    if (isParsingInvoiceAddress && row['The Supreme Industries Limited'] && !String(row['The Supreme Industries Limited']).includes('ADDRESS')) {\n        addressLines.invoice.push(String(row['The Supreme Industries Limited']).trim());\n    }\n    if (isParsingDeliveryAddress && row['__EMPTY_4'] && !String(row['__EMPTY_4']).includes('ADDRESS')) {\n        const val = String(row['__EMPTY_4']).trim();\n        if (val.includes('Contact Person')) result.deliveryAddress.contactPerson = row['__EMPTY_7'];\n        else if (val.includes('Telephone')) result.deliveryAddress.telephone = row['__EMPTY_7'];\n        else addressLines.delivery.push(val);\n    }\n    \n    // --- Parse Line Items Table & Mid-Table Charges ---\n    if (isParsingItems) {\n      if (values.includes('Sr') && values.includes('Product')) {\n        const keys = Object.keys(row);\n        keys.forEach(key => {\n            const headerName = (row[key] || '').replace(/\\s+/g, ' ').trim();\n            if (headerName === 'Sr') itemHeaderMap.sr = key; if (headerName === 'Product') itemHeaderMap.product = key; if (headerName === 'Part Name' || headerName === 'Description') itemHeaderMap.description = key; if (headerName === 'Colour') itemHeaderMap.colour = key; if (headerName === 'Wt (Kg)') itemHeaderMap.wt_kg = key; if (headerName === 'Real/Kg') itemHeaderMap.real_kg = key; if (headerName === 'Crate Cost') itemHeaderMap.crate_cost = key; if (headerName === 'SP') itemHeaderMap.sp = key; if (headerName === 'Fab Cost') itemHeaderMap.fab_cost = key; if (headerName === 'Qty') itemHeaderMap.qty = key; if (headerName === 'Basic Price') itemHeaderMap.basic_price = key; if (headerName === 'Value in Rs.') itemHeaderMap.value_rs = key;\n        });\n        continue;\n      }\n      \n      const srValue = row[itemHeaderMap.sr];\n      if (srValue && !isNaN(parseInt(srValue, 10))) {\n        result.items.push({ sr: parseInt(srValue, 10) || 0, product: row[itemHeaderMap.product] || '', description: row[itemHeaderMap.description] || '', colour: row[itemHeaderMap.colour] || '', wt_kg: parseFloat(row[itemHeaderMap.wt_kg]) || 0, real_kg: parseInt(row[itemHeaderMap.real_kg], 10) || 0, crate_cost: parseFloat(row[itemHeaderMap.crate_cost]) || 0, sp: parseFloat(row[itemHeaderMap.sp]) || 0, fab_cost: parseFloat(row[itemHeaderMap.fab_cost]) || 0, qty: parseFloat(row[itemHeaderMap.qty]) || 0, basic_price: parseFloat(row[itemHeaderMap.basic_price]) || 0, value_rs: parseFloat(row[itemHeaderMap.value_rs]) || 0 });\n      } else if (itemHeaderMap.basic_price && row[itemHeaderMap.basic_price] && isNaN(parseInt(row[itemHeaderMap.basic_price], 10))) {\n        // **FIX**: Capture additional charges like 'Delivery' or 'Freight'\n        const chargeLabel = String(row[itemHeaderMap.basic_price]).trim().toLowerCase();\n        const chargeValue = parseFloat(row[itemHeaderMap.value]);\n        if (!isNaN(chargeValue) && (chargeLabel.includes('delivery') || chargeLabel.includes('freight'))) {\n            result.totals.freight += chargeValue;\n        }\n      }\n    }\n\n    // --- Parse Footer & Totals ---\n    if(findValueInRow(row, 'ADD IGST @ 18 %')) result.totals.igstAmount = parseFloat(findValueInRow(row, 'ADD IGST @ 18 %')) || 0;\n    if(findValueInRow(row, 'Total order value in Rs.')) result.totals.totalOrderValue = parseFloat(findValueInRow(row, 'Total order value in Rs.')) || 0;\n    if(findValueInRow(row, 'ORC Payable To')) result.orcPayableTo.name = findValueInRow(row, 'ORC Payable To');\n    if(result.orcPayableTo.name && findValueInRow(row, 'PAN')) result.orcPayableTo.pan = findValueInRow(row, 'PAN');\n    if(findValueInRow(row, 'Transporter')) result.transportDetails.transporter = findValueInRow(row, 'Transporter');\n    if(findValueInRow(row, 'Freight (Paid/To Pay/TBB)')) result.transportDetails.freightType = findValueInRow(row, 'Freight (Paid/To Pay/TBB)');\n    if(findValueInRow(row, 'Delivery Schedule')) result.deliverySchedule = findValueInRow(row, 'Delivery Schedule');\n    if(row['__EMPTY_1'] && !isNaN(parseInt(row['__EMPTY_1'], 10)) && row['__EMPTY_2']){ result.specialInstructions.push(row['__EMPTY_2']); }\n    if(findValueInRow(row, 'Card Holder')) result.additionalServices.cardHolder = findValueInRow(row, 'Card Holder');\n    if(findValueInRow(row, 'Screen Printing')) result.additionalServices.screenPrinting = findValueInRow(row, 'Screen Printing');\n    if(findValueInRow(row, 'Fabrication')) result.additionalServices.fabrication = findValueInRow(row, 'Fabrication');\n  }\n\n  // --- Final Cleanup & Calculation ---\n  result.invoiceAddress = addressLines.invoice.join(', ');\n  result.deliveryAddress.address = addressLines.delivery.join(', ');\n  const itemsTotal = result.items.reduce((sum, item) => sum + item.value, 0);\n  // **FIX**: Subtotal is now sum of item values + any freight/delivery charges found mid-table\n  result.totals.subTotal = itemsTotal + result.totals.freight;\n\n  return result;\n}\n\n// =================================================================\n// MAIN EXECUTION PART FOR N8N\n// =================================================================\nconst rawData = items.map(item => item.json);\nconst structuredData = transformDeliveryOrder(rawData);\nreturn [structuredData];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -128,
+        0
+      ],
+      "id": "61febd2e-b479-464b-bafd-d6657573b862",
+      "name": "Normalize Excel Grid"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d7386846-6744-4cf6-bac0-5323fa8cf476",
+              "name": "documentTitle",
+              "value": "={{ $json.documentTitle }}",
+              "type": "string"
+            },
+            {
+              "id": "9c029278-f327-4010-82a2-b16b0b949d13",
+              "name": "company",
+              "value": "={{ $json.company }}",
+              "type": "string"
+            },
+            {
+              "id": "b781eea0-c644-4d38-9b82-e324602dfda3",
+              "name": "division",
+              "value": "={{ $json.division }}",
+              "type": "string"
+            },
+            {
+              "id": "80c1a8ad-20eb-4025-b409-9eeab2573e0f",
+              "name": "orderToUnit",
+              "value": "={{ $json.orderToUnit }}",
+              "type": "string"
+            },
+            {
+              "id": "eef13b49-67f2-4eb9-9f66-d49e8fae9aa3",
+              "name": "doNumber",
+              "value": "={{ $json.doNumber }}",
+              "type": "string"
+            },
+            {
+              "id": "dd9f049e-65a1-462a-82e3-f1f77bc2b911",
+              "name": "doDate",
+              "value": "={{ $json.doDate }}",
+              "type": "string"
+            },
+            {
+              "id": "b04c4247-073f-4bc3-9dc8-21205ce00036",
+              "name": "customerPoNumber",
+              "value": "={{ $json.customerPoNumber }}",
+              "type": "string"
+            },
+            {
+              "id": "bc6fa26d-86cd-4ba2-8094-79f640e8bf1b",
+              "name": "sapDoNumber",
+              "value": "={{ $json.sapDoNumber }}",
+              "type": "string"
+            },
+            {
+              "id": "24a212ba-221d-4d94-9dc3-f9491fb6b3b3",
+              "name": "invoiceAddress",
+              "value": "={{ $json.invoiceAddress }}",
+              "type": "string"
+            },
+            {
+              "id": "62c845b2-21fd-4857-b415-e543b243a839",
+              "name": "deliveryAddress.address",
+              "value": "={{ $json.deliveryAddress.address }}",
+              "type": "string"
+            },
+            {
+              "id": "9bac621e-a3ea-4e52-b8cb-349f4eba740e",
+              "name": "deliveryAddress.contactPerson",
+              "value": "={{ $json.deliveryAddress.contactPerson }}",
+              "type": "string"
+            },
+            {
+              "id": "1139a2d3-9e83-4d64-b294-c504daee31ed",
+              "name": "deliveryAddress.telephone",
+              "value": "={{ $json.deliveryAddress.telephone }}",
+              "type": "number"
+            },
+            {
+              "id": "098ca162-a289-4bbb-b495-332796306a07",
+              "name": "gstNumber",
+              "value": "={{ $json.gstNumber }}",
+              "type": "string"
+            },
+            {
+              "id": "c04090fc-12a3-49da-b67c-57bde8675b57",
+              "name": "pan",
+              "value": "={{ $json.pan }}",
+              "type": "string"
+            },
+            {
+              "id": "386bee22-ff0c-480e-b767-5d722d500bc2",
+              "name": "termsOfPayment",
+              "value": "={{ $json.termsOfPayment }}",
+              "type": "string"
+            },
+            {
+              "id": "743f5118-7e4b-4fab-b5ef-9211486b755e",
+              "name": "items",
+              "value": "={{ $json.items }}",
+              "type": "array"
+            },
+            {
+              "id": "95b5c212-3da9-4e13-a088-49aa17b0dc04",
+              "name": "transportDetails.transporter",
+              "value": "={{ $json.transportDetails.transporter }}",
+              "type": "string"
+            },
+            {
+              "id": "bc20bb80-8ab6-4d70-b229-7be77315159c",
+              "name": "transportDetails.freightType",
+              "value": "={{ $json.transportDetails.freightType }}",
+              "type": "string"
+            },
+            {
+              "id": "e5b7f434-07c4-459a-90f3-5210ba360a0e",
+              "name": "deliverySchedule",
+              "value": "={{ $json.deliverySchedule }}",
+              "type": "string"
+            },
+            {
+              "id": "7f50ac0e-a002-45db-b76e-1cc5a88b1f15",
+              "name": "specialInstructions",
+              "value": "={{ $json.specialInstructions }}",
+              "type": "array"
+            },
+            {
+              "id": "719fb29e-8501-480a-9977-2ef144e3e195",
+              "name": "totals",
+              "value": "={{ $json.totals }}",
+              "type": "object"
+            },
+            {
+              "id": "c1c85aa5-d876-49d5-b589-966efdf0c463",
+              "name": "orcPayableTo",
+              "value": "={{ $json.orcPayableTo }}",
+              "type": "object"
+            },
+            {
+              "id": "b68aef55-6d03-43b8-ada7-d7a905d737a1",
+              "name": "additionalServices",
+              "value": "={{ $json.additionalServices }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        96,
+        0
+      ],
+      "id": "3f6f8549-7f36-44dc-9937-b9e9591a99ca",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "docType": "Supreme%20Purchase%20Order",
+        "properties": {
+          "customProperty": [
+            {
+              "field": "order_to_unit",
+              "value": "={{ $json.orderToUnit }}"
+            },
+            {
+              "field": "do_no",
+              "value": "={{ $json.doNumber }}"
+            },
+            {
+              "field": "do_date",
+              "value": "={{\n  $json.doDate\n    .replace(/\\./g, '/')\n    .split('/')\n    .reverse()\n    .join('-')\n}}"
+            },
+            {
+              "field": "customer_po_no_and_date",
+              "value": "={{ $json.customerPoNumber }}"
+            },
+            {
+              "field": "sap_do_no",
+              "value": "={{ $json.sapDoNumber }}"
+            },
+            {
+              "field": "invoice_address",
+              "value": "={{ $json.invoiceAddress }}"
+            },
+            {
+              "field": "delivery_address",
+              "value": "={{ $json.deliveryAddress.address }}"
+            },
+            {
+              "field": "contact_person",
+              "value": "={{ $json.deliveryAddress.contactPerson }}"
+            },
+            {
+              "field": "telephone",
+              "value": "={{ $json.deliveryAddress.telephone }}"
+            },
+            {
+              "field": "gst_number",
+              "value": "={{ $json.gstNumber }}"
+            },
+            {
+              "field": "pan",
+              "value": "={{ $json.pan }}"
+            },
+            {
+              "field": "terms_of_payment",
+              "value": "={{ $json.termsOfPayment }}"
+            },
+            {
+              "field": "item_table",
+              "value": "={{ $json.items }}"
+            },
+            {
+              "field": "transporter",
+              "value": "={{ $json.transportDetails.transporter }}"
+            },
+            {
+              "field": "freight_paidto_paytbb",
+              "value": "={{ $json.transportDetails.freightType }}"
+            },
+            {
+              "field": "delivery_schedule",
+              "value": "={{ $json.deliverySchedule }}"
+            },
+            {
+              "field": "=special_instructions",
+              "value": "={{ $json.specialInstructions.join('\\n') }}"
+            },
+            {
+              "field": "freight",
+              "value": "={{ $json.totals.freight }}"
+            },
+            {
+              "field": "sub_total",
+              "value": "={{ $json.totals.subTotal }}"
+            },
+            {
+              "field": "add_igst__18",
+              "value": "={{ $json.totals.igstAmount }}"
+            },
+            {
+              "field": "total_order_value_in_rs",
+              "value": "={{ $json.totals.totalOrderValue }}"
+            },
+            {
+              "field": "card_holder",
+              "value": "={{ $json.additionalServices.cardHolder }}"
+            },
+            {
+              "field": "screen_printing",
+              "value": "={{ $json.additionalServices.screenPrinting }}"
+            },
+            {
+              "field": "fabrication",
+              "value": "={{ $json.additionalServices.fabrication }}"
+            },
+            {
+              "field": "orc_payable_to",
+              "value": "={{ $json.orcPayableTo.name }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.erpNext",
+      "typeVersion": 1,
+      "position": [
+        320,
+        0
+      ],
+      "id": "d3f8d01f-f151-4c95-9762-0b499cbe7b09",
+      "name": "Create a document",
+      "credentials": {
+        "erpNextApi": {
+          "id": "Ap4xMpiohheRFSqL",
+          "name": "ERPNext account(Prasanth)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "docType": "Communication",
+        "options": {
+          "fields": [
+            "*"
+          ],
+          "filters": {
+            "customProperty": [
+              {
+                "field": "process_status",
+                "value": "Processed"
+              },
+              {
+                "field": "doc_type",
+                "value": "Supreme DO"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.erpNext",
+      "typeVersion": 1,
+      "position": [
+        -2368,
+        320
+      ],
+      "id": "6bdab314-905f-411d-8fcc-594dcfd0d92a",
+      "name": "Get many documents1",
+      "credentials": {
+        "erpNextApi": {
+          "id": "Ap4xMpiohheRFSqL",
+          "name": "ERPNext account(Prasanth)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "docType": "Communication",
+        "documentName": "={{ $('Get URL data').last().json[\"communication id\"] }}",
+        "properties": {
+          "customProperty": [
+            {
+              "field": "process_status",
+              "value": "Document Created"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.erpNext",
+      "typeVersion": 1,
+      "position": [
+        544,
+        0
+      ],
+      "id": "06f24f58-717f-4acb-b518-3db822a28c97",
+      "name": "Update a document",
+      "credentials": {
+        "erpNextApi": {
+          "id": "Ap4xMpiohheRFSqL",
+          "name": "ERPNext account(Prasanth)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -2144,
+        320
+      ],
+      "id": "ad658ff8-3302-402f-81d4-44d7b5c02790",
+      "name": "Loop Over Items1"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "name": "Replace Me2",
+      "typeVersion": 1,
+      "position": [
+        -800,
+        192
+      ],
+      "id": "f53ed33b-49be-422a-aa85-d472c6a8a3cc"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6a92b536-35fb-4461-a301-81b3cf1c4e5c",
+              "name": "name",
+              "value": "={{ $json.name }}",
+              "type": "string"
+            },
+            {
+              "id": "e6f5d230-0876-4d9f-976c-463dcc0bd2ff",
+              "name": "subject",
+              "value": "={{ $json.subject }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1920,
+        192
+      ],
+      "id": "e371e303-b111-4720-8886-9565ac348217",
+      "name": "GET Communcation data"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "bd18b318-b85a-42ca-9ea6-bec4da43238c",
+              "name": "file_name",
+              "value": "={{ $json.file_name }}",
+              "type": "string"
+            },
+            {
+              "id": "88f8ea3e-89c3-42a3-aa04-152da6c89c1f",
+              "name": "file_url",
+              "value": "={{ $json.file_url }}",
+              "type": "string"
+            },
+            {
+              "id": "66a54051-58f1-488a-9163-6f87d93cb912",
+              "name": "communication id",
+              "value": "={{ $('GET Communcation data').item.json.name }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -800,
+        0
+      ],
+      "id": "c3e3b80d-ece2-482e-a3ea-97f4795bc43b",
+      "name": "Get URL data"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 30
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -2592,
+        320
+      ],
+      "id": "9e6a5fa0-599d-44ba-8779-d85695997983",
+      "name": "Schedule Trigger"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Extract from File2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File2": {
+      "main": [
+        [
+          {
+            "node": "Split Out1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request (To Download Binary Files )1": {
+      "main": [
+        [
+          {
+            "node": "Extract from File3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File3": {
+      "main": [
+        [
+          {
+            "node": "Normalize Excel Grid",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Replace Me2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get URL data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Replace Me": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Excel Grid": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Create a document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a document": {
+      "main": [
+        [
+          {
+            "node": "Update a document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many documents1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update a document": {
+      "main": [
+        [
+          {
+            "node": "Replace Me",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items1": {
+      "main": [
+        [],
+        [
+          {
+            "node": "GET Communcation data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Replace Me2": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET Communcation data": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get URL data": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request (To Download Binary Files )1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get many documents1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "7553bde5-21ef-40c4-aa65-c0d7df21216c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "95e36802bf58d2051ef2ba3daf7047d922424ebe681ae4034d17d4456bf02c8a"
+  },
+  "id": "vMi5eUOViLQWBrxJ",
+  "tags": []
+}

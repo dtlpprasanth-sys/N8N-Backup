@@ -1,0 +1,865 @@
+{
+  "name": "Create Hab-Invoice",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "get",
+        "docType": "Communication",
+        "documentName": "etf6s4fv87"
+      },
+      "type": "n8n-nodes-base.erpNext",
+      "typeVersion": 1,
+      "position": [
+        304,
+        80
+      ],
+      "id": "7e5b3420-01f6-4fe1-83f9-e5bca09cd3db",
+      "name": "Get a document",
+      "credentials": {
+        "erpNextApi": {
+          "id": "Ap4xMpiohheRFSqL",
+          "name": "ERPNext account(Prasanth)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "http://13.234.62.39:8080/api/resource/File",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "filters",
+              "value": "=[[\"attached_to_name\",\"=\",\"{{$json.name}}\"]]"
+            },
+            {
+              "name": "fields",
+              "value": "[\"file_name\", \"file_url\"]"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        752,
+        80
+      ],
+      "id": "cc7b43ce-6c69-4062-9377-cdc03636557a",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "KZDBOwB51l3Gs6Xh",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "fromJson",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        976,
+        80
+      ],
+      "id": "20ea37ce-4a96-4383-bc5b-cd0a6f4eabbf",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "data.data",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        80
+      ],
+      "id": "214da5d9-1670-4b81-adb2-b8cd97bc0417",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "402bc100-544e-41c7-8893-50ca3bd3ca5b",
+              "name": "name",
+              "value": "={{ $json.name }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        528,
+        80
+      ],
+      "id": "80c22518-7e0d-4b82-ad9a-9bb6017c57c5",
+      "name": "Get Communication ID"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "12a533b9-f878-46c4-b92e-bae12f76e282",
+              "name": "Communication Id",
+              "value": "={{ $('Get Communication ID').item.json.name }}",
+              "type": "string"
+            },
+            {
+              "id": "46c08508-d8a3-45f5-844d-b24c52760614",
+              "name": "file_name",
+              "value": "={{ $json.file_name }}",
+              "type": "string"
+            },
+            {
+              "id": "0b7f81a6-cbc2-40c5-8974-a9068e66f412",
+              "name": "file_url",
+              "value": "={{ $json.file_url }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1424,
+        80
+      ],
+      "id": "ca9afccf-b403-4a5b-9f17-6b5d828c94a5",
+      "name": "Communication  with File url"
+    },
+    {
+      "parameters": {
+        "url": "=http://13.234.62.39:8080{{ $json.file_url }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2320,
+        80
+      ],
+      "id": "2ae7e283-67f9-4ea0-8775-8e651c992df3",
+      "name": "HTTP Request (To Download Binary Files )",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "KZDBOwB51l3Gs6Xh",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        2544,
+        80
+      ],
+      "id": "d0756f97-d4a8-4a01-90ab-24df7eea5642",
+      "name": "Extract from Invoice"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "name": "Replace Me",
+      "typeVersion": 1,
+      "position": [
+        2096,
+        -112
+      ],
+      "id": "eb2c8863-714f-4bd3-91d3-0f9f33b282ab"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1872,
+        80
+      ],
+      "id": "7c88f6fd-3313-4a29-927a-e705a85716ff",
+      "name": "Loop Over Items1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "65346e2e-aba9-408c-8c24-413cc80e88fe",
+              "name": "Communication Id",
+              "value": "={{ $json['Communication Id'] }}",
+              "type": "string"
+            },
+            {
+              "id": "b7785b11-dcee-40bf-964c-d21d3927e3b3",
+              "name": "file_name",
+              "value": "={{ $json.file_name }}",
+              "type": "string"
+            },
+            {
+              "id": "f632c043-0508-4d8d-8a71-4cba6e5d8ba8",
+              "name": "file_url",
+              "value": "={{ $json.file_url }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2096,
+        80
+      ],
+      "id": "a4b326bc-9742-4bf7-9800-b447fea5a471",
+      "name": "original Communication Id"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "a3dd8e77-8b3f-4496-b9f9-2cfe5c43a5c6",
+              "leftValue": "={{ $json.file_url }}",
+              "rightValue": ".pdf",
+              "operator": {
+                "type": "string",
+                "operation": "endsWith"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1648,
+        80
+      ],
+      "id": "7006c346-3e01-4f64-a0de-178e47cbe2fa",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "60a3c13e-481c-41ce-816c-b1eaa2a0e088",
+              "name": "text",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2768,
+        80
+      ],
+      "id": "e6469050-b558-45dc-b4e6-c19d6242a447",
+      "name": "Invoice Text"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Act as a professional OCR data extraction engine specializing in Indian Tax Invoices. Your goal is to transform the provided raw text into a single, valid JSON object for ERP integration (ERPNext-compatible).\n\n========================\nOUTPUT RULES (STRICT)\n\nReturn ONLY valid JSON\n\nNO markdown\n\nNO explanations or conversational text\n\nJSON must be fully parsable\n\nDates MUST be in \"YYYY-MM-DD HH:MM:SS\" format (or YYYY-MM-DD for PO dates)\n\nAll numeric values MUST be numbers (not strings)\n\nIf a value is missing, omit the key or use null\n\nDO NOT truncate values unless explicitly instructed\n\n========================\nEXTRACTION LOGIC\n\nInvoice Type\n\nAlways classify as \"TAX INVOICE\"\n\nLine Items (CRITICAL – MUST FOLLOW)\n\nMerge multi-line item text into a single coherent string\n\nExtract item_code from the beginning of the description (e.g., \"TC-35ER PET\")\n\nDescription Handling (VERY IMPORTANT):\n\ndescription\n→ Short item name / summary\n→ MUST be ≤ 140 characters\n→ Should include item code + main product name only\n\ndescription_large\n→ FULL detailed technical description\n→ Include material, color, width, length, specs, notes\n→ NO character limit\n\nExample logic:\n\ndescription = concise product title\n\ndescription_large = complete original description text\n\nPricing & Tax\n\ntaxable_value = amount AFTER discount and BEFORE GST\n\nExtract and separate:\n\nsgst_percent, sgst_amount\n\ncgst_percent, cgst_amount\n\nEnsure GST math is consistent per line item\n\nTotals\n\nrounding_adjustment must be negative if invoice shows minus (e.g., -0.39)\n\ngrand_total must exactly match invoice total\n\nBank Details\n\nLook specifically for:\n\nBank Name\n\nAccount No\n\nIFSC\n\nRTGS / NEFT references\n\n========================\nMANDATORY JSON STRUCTURE\n\n{\n\"invoice_number\": number,\n\"irn\": \"string\",\n\"ack_number\": number,\n\"ack_date\": \"YYYY-MM-DD HH:MM:SS\",\n\"document_date\": \"YYYY-MM-DD HH:MM:SS\",\n\"currency\": \"string\",\n\"place_of_supply\": \"string\",\n\"supplier_details\": {\n\"name\": \"string\",\n\"gstin\": \"string\",\n\"address\": \"string\"\n},\n\"customer_details\": {\n\"name\": \"string\",\n\"customer_code\": number,\n\"gstin\": \"string\",\n\"billing_address\": \"string\",\n\"shipping_address\": \"string\"\n},\n\"order_info\": {\n\"purchase_order_no\": \"string\",\n\"purchase_order_date\": \"YYYY-MM-DD\",\n\"payment_terms\": \"string\",\n\"shipping_condition\": \"string\"\n},\n\"items\": [\n{\n\"item_code\": \"string\",\n\"description\": \"string\",\n\"description_large\": \"string\",\n\"hsn_code\": number,\n\"qty\": number,\n\"uom\": \"string\",\n\"rate\": number,\n\"discount_percent\": number,\n\"discount_amount\": number,\n\"taxable_value\": number,\n\"sgst_percent\": number,\n\"sgst_amount\": number,\n\"cgst_percent\": number,\n\"cgst_amount\": number,\n\"total_amount\": number\n}\n],\n\"totals\": {\n\"total_taxable_value\": number,\n\"total_gst_value\": number,\n\"rounding_adjustment\": number,\n\"grand_total\": number\n},\n\"bank_details\": {\n\"bank_name\": \"string\",\n\"account_no\": \"string\",\n\"ifsc_code\": \"string\"\n}\n}\n\n========================\nINPUT TEXT TO PROCESS\n\n{{ $json.text }}",
+        "needsFallback": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        2992,
+        80
+      ],
+      "id": "51a5c03b-f44e-47f6-8a41-1060972049cb",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "llama-3.1-8b-instant",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        3008,
+        304
+      ],
+      "id": "dbfa18e6-f06d-4fb7-8e7d-5d9a3ebe3b27",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "vXEkjDoQdItMsfhz",
+          "name": "Groq account(sasi)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        3136,
+        304
+      ],
+      "id": "b334fe30-1cd3-4ea6-915f-c89d4b63d43e",
+      "name": "Groq Chat Model1",
+      "credentials": {
+        "groqApi": {
+          "id": "hrr6JX3rRNsV7t56",
+          "name": "Groq account(Sneha)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n  try {\n    // 1. Get the output string (default to empty object string if missing)\n    let output_string = item.json.output || '{}';\n\n    // 2. Clean Markdown formatting (```json ... ```)\n    if (output_string.includes(\"```json\")) {\n      output_string = output_string.split(\"```json\")[1].trim();\n      if (output_string.includes(\"```\")) {\n        output_string = output_string.split(\"```\")[0].trim();\n      }\n    }\n\n    // 3. Fix truncated JSON if it's missing the closing bracket\n    if (output_string.trim().startsWith('{') && !output_string.trim().endsWith('}')) {\n      output_string = output_string.trim() + '}';\n    }\n\n    // 4. Parse the cleaned string into a real JSON object\n    const parsed_data = JSON.parse(output_string);\n\n    return { json: parsed_data };\n\n  } catch (e) {\n    // Handle errors just like your Python script did\n    return {\n      json: {\n        error: \"Parser 1 failed\",\n        details: e.message,\n        original_output_for_debugging: item.json.output || 'Not Found'\n      }\n    };\n  }\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3344,
+        80
+      ],
+      "id": "e7ac198d-51dd-4901-b057-1ac80299d918",
+      "name": "Parser 1 (JavaScript)"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -144,
+        80
+      ],
+      "id": "e79f0885-bd43-46cb-afef-f71e015fbcb5",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "docType": "Communication",
+        "limit": 1,
+        "options": {
+          "filters": {
+            "customProperty": [
+              {
+                "field": "doc_type",
+                "value": "Habasit Purchase Invoice"
+              },
+              {
+                "field": "process_status",
+                "value": "Processed"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.erpNext",
+      "typeVersion": 1,
+      "position": [
+        80,
+        80
+      ],
+      "id": "cb99dfdb-b361-448a-8df7-ddb6fd8a875a",
+      "name": "Get many documents",
+      "credentials": {
+        "erpNextApi": {
+          "id": "Ap4xMpiohheRFSqL",
+          "name": "ERPNext account(Prasanth)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "docType": "Habasit%20Invoice",
+        "properties": {
+          "customProperty": [
+            {
+              "field": "invoice_number",
+              "value": "={{ $json.invoice_number }}"
+            },
+            {
+              "field": "irn",
+              "value": "={{ $json.irn }}"
+            },
+            {
+              "field": "ack_number",
+              "value": "={{ $json.ack_number }}"
+            },
+            {
+              "field": "ack_date",
+              "value": "={{ $json.ack_date }}"
+            },
+            {
+              "field": "document_date",
+              "value": "={{ $json.document_date }}"
+            },
+            {
+              "field": "currency",
+              "value": "={{ $json.currency }}"
+            },
+            {
+              "field": "supplier_name",
+              "value": "={{ $json.supplier_details.name }}"
+            },
+            {
+              "field": "supplier_gstin",
+              "value": "={{ $json.supplier_details.gstin }}"
+            },
+            {
+              "field": "supplier_address",
+              "value": "={{ $json.supplier_details.address }}"
+            },
+            {
+              "field": "customer_name",
+              "value": "={{ $json.customer_details.name }}"
+            },
+            {
+              "field": "customer_code",
+              "value": "={{ $json.customer_details.customer_code }}"
+            },
+            {
+              "field": "customer_gstin",
+              "value": "={{ $json.customer_details.gstin }}"
+            },
+            {
+              "field": "billing_address",
+              "value": "={{ $json.customer_details.billing_address }}"
+            },
+            {
+              "field": "shipping_address",
+              "value": "={{ $json.customer_details.shipping_address }}"
+            },
+            {
+              "field": "purchase_order_no",
+              "value": "={{ $json.order_info.purchase_order_no }}"
+            },
+            {
+              "field": "purchase_order_date",
+              "value": "={{ $json.order_info.purchase_order_date }}"
+            },
+            {
+              "field": "payment_terms",
+              "value": "={{ $json.order_info.payment_terms }}"
+            },
+            {
+              "field": "shipping_address",
+              "value": "={{ $json.order_info.shipping_condition }}"
+            },
+            {
+              "field": "item_table",
+              "value": "={{ $json.items }}"
+            },
+            {
+              "field": "total_taxable_value",
+              "value": "={{ $json.totals.total_taxable_value }}"
+            },
+            {
+              "field": "total_gst_value",
+              "value": "={{ $json.totals.total_gst_value }}"
+            },
+            {
+              "field": "rounding_adjustment",
+              "value": "={{ $json.totals.rounding_adjustment }}"
+            },
+            {
+              "field": "grand_total",
+              "value": "={{ $json.totals.grand_total }}"
+            },
+            {
+              "field": "bank_name",
+              "value": "={{ $json.bank_details.bank_name }}"
+            },
+            {
+              "field": "account_no",
+              "value": "={{ $json.bank_details.account_no }}"
+            },
+            {
+              "field": "ifsc_code",
+              "value": "={{ $json.bank_details.ifsc_code }}"
+            },
+            {
+              "field": "place_of_supply",
+              "value": "={{ $json.place_of_supply }}"
+            },
+            {
+              "field": "shipping_condition",
+              "value": "={{ $json.order_info.shipping_condition }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.erpNext",
+      "typeVersion": 1,
+      "position": [
+        3568,
+        80
+      ],
+      "id": "4698362d-a7ce-4f98-ac71-cd481155cc1a",
+      "name": "Create a document",
+      "credentials": {
+        "erpNextApi": {
+          "id": "Ap4xMpiohheRFSqL",
+          "name": "ERPNext account(Prasanth)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 30
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        3792,
+        208
+      ],
+      "id": "47620a4e-bf1d-4686-8891-227f4819eabf",
+      "name": "Wait",
+      "webhookId": "920ce534-3617-4a93-987c-65f695acec6a"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "docType": "Communication",
+        "documentName": "={{ $('Get many documents').item.json.name }}",
+        "properties": {
+          "customProperty": [
+            {
+              "field": "process_status",
+              "value": "Document Created"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.erpNext",
+      "typeVersion": 1,
+      "position": [
+        2304,
+        -112
+      ],
+      "id": "eddc9536-ee91-4390-b041-0d666fd9a66d",
+      "name": "Update a document",
+      "credentials": {
+        "erpNextApi": {
+          "id": "Ap4xMpiohheRFSqL",
+          "name": "ERPNext account(Prasanth)"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Communication  with File url",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Communication ID": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a document": {
+      "main": [
+        [
+          {
+            "node": "Get Communication ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request (To Download Binary Files )": {
+      "main": [
+        [
+          {
+            "node": "Extract from Invoice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from Invoice": {
+      "main": [
+        [
+          {
+            "node": "Invoice Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items1": {
+      "main": [
+        [
+          {
+            "node": "Replace Me",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "original Communication Id",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "original Communication Id": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request (To Download Binary Files )",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Communication  with File url": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Invoice Text": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Parser 1 (JavaScript)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Parser 1 (JavaScript)": {
+      "main": [
+        [
+          {
+            "node": "Create a document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get many documents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many documents": {
+      "main": [
+        [
+          {
+            "node": "Get a document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a document": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Replace Me": {
+      "main": [
+        [
+          {
+            "node": "Update a document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "5760719b-9f3a-4b29-b9f3-1e2d6d646dd0",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "95e36802bf58d2051ef2ba3daf7047d922424ebe681ae4034d17d4456bf02c8a"
+  },
+  "id": "O9O3PmVeZTu5mnz3",
+  "tags": []
+}
